@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Notifications\WelcomeEmail;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ConfirmEmail;
 use App\Mail\ForgotPassword;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -98,13 +100,19 @@ class UserController extends Controller
             'state' => $request->state,
             'city' => $request->city,
             'postal_code' => $request->postalCode,
+            'email_verified' => false,
         ]);
 
         if ($user) {
-            $token = $user->createToken('Personal Access Token')->plainTextToken;
+            $token = Str::random(60);
+            $user->email_verification_token = $token;
+            $user->save();
+
+            $user->notify(new ConfirmEmail($token));
+
             return response()->json([
                 'user' => $user,
-                'token' => $token,
+                'token' => $user->createToken('Personal Access Token')->plainTextToken,
             ], 201);
         } else {
             return response()->json(['error' => 'Invalid user data'], 400);
@@ -223,15 +231,32 @@ class UserController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if ($user) {
-            $resetCode = bin2hex(random_bytes(16));
-            $user->reset_code = $resetCode;
+            $token = Str::random(60);
+            $user->password_reset_token = $token;
             $user->save();
 
-            Mail::to($request->email)->send(new ForgotPassword($resetCode));
+            $user->notify(new ForgotPassword($token));
 
-            return response()->json(['ok' => true], 200);
+            return response()->json(['message' => 'Password reset email sent.'], 200);
         } else {
-            return response()->json(['error' => 'User not found'], 404);
+            return response()->json(['error' => 'User not found.'], 404);
+        }
+    }
+
+    public function verifyEmail($token)
+    {
+        $user = User::where('email_verification_token', $token)->first();
+
+        if ($user) {
+            $user->email_verified = true;
+            $user->email_verification_token = null;
+            $user->save();
+
+            $user->notify(new WelcomeEmail());
+
+            return response()->json(['message' => 'Email verified successfully.'], 200);
+        } else {
+            return response()->json(['error' => 'Invalid token.'], 400);
         }
     }
 }

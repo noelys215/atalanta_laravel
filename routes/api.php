@@ -16,3 +16,4 @@ Route::post('/auth', [UserController::class, 'authUser']);
 Route::post('/pre-register', [UserController::class, 'preRegister']);
 Route::post('/register', [UserController::class, 'registerUser']);
 Route::post('/forgot-password', [UserController::class, 'forgotPassword']);
+Route::get('/email/verify/{token}', [UserController::class, 'verifyEmail']);
