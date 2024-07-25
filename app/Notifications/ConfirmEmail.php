@@ -28,8 +28,9 @@ class ConfirmEmail extends Notification
         return (new MailMessage)
             ->subject('Confirm your email address')
             ->line('Please click the button below to confirm your email address.')
-            ->action('Confirm Email', url('/api/email/verify/' . $this->token))
+            ->action('Confirm Email', url('/email/verify/' . $this->token))
             ->line('If you did not create an account, no further action is required.');
     }
 }
+
 

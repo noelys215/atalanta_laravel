@@ -2,24 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Notifications\WelcomeEmail;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\ConfirmEmail;
-use App\Mail\ForgotPassword;
+use App\Notifications\ConfirmEmail;
+use App\Notifications\WelcomeEmail;
+use App\Notifications\ForgotPassword;
 use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth:sanctum', ['except' => ['authUser', 'preRegister', 'registerUser', 'forgotPassword']]);
-    }
-
     // Auth User & Get Token
     public function authUser(Request $request)
     {
@@ -85,7 +80,7 @@ class UserController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
+            return back()->withErrors($validator)->withInput();
         }
 
         $user = User::create([
@@ -101,25 +96,64 @@ class UserController extends Controller
             'city' => $request->city,
             'postal_code' => $request->postalCode,
             'email_verified' => false,
+            'email_verification_token' => Str::random(60),
         ]);
 
         if ($user) {
-            $token = Str::random(60);
-            $user->email_verification_token = $token;
-            $user->save();
+            $user->notify(new ConfirmEmail($user->email_verification_token));
 
-            $user->notify(new ConfirmEmail($token));
-
-            return response()->json([
-                'user' => $user,
-                'token' => $user->createToken('Personal Access Token')->plainTextToken,
-            ], 201);
+            return redirect()->route('register-form')->with('success', 'Registration successful! Please check your email to verify your account.');
         } else {
-            return response()->json(['error' => 'Invalid user data'], 400);
+            return back()->with('error', 'Registration failed! Please try again.');
         }
     }
 
-    // Get user profile
+
+    // Verify Email and Send Welcome Email
+    public function verifyEmail($token)
+    {
+        $user = User::where('email_verification_token', $token)->first();
+
+        if ($user) {
+            $user->email_verified = true;
+            $user->email_verification_token = null;
+            $user->save();
+
+            $user->notify(new WelcomeEmail());
+
+            return redirect()->route('register-form')->with('success', 'Email verified successfully. Welcome!');
+        } else {
+            return redirect()->route('register-form')->with('error', 'Invalid token. Email verification failed.');
+        }
+    }
+
+    // Forgot Password
+    public function forgotPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 400);
+        }
+
+        $user = User::where('email', $request->email)->first();
+
+        if ($user) {
+            $token = Str::random(60);
+            $user->password_reset_token = $token;
+            $user->save();
+
+            $user->notify(new ForgotPassword($token));
+
+            return response()->json(['message' => 'Password reset email sent.'], 200);
+        } else {
+            return response()->json(['error' => 'User not found.'], 404);
+        }
+    }
+
+    // Get User Profile
     public function getUserProfile()
     {
         $user = Auth::user();
@@ -131,7 +165,7 @@ class UserController extends Controller
         }
     }
 
-    // Update user profile
+    // Update User Profile
     public function updateUserProfile(Request $request)
     {
         $user = Auth::user();
@@ -159,14 +193,14 @@ class UserController extends Controller
         }
     }
 
-    // Get all users
+    // Get All Users
     public function getUsers()
     {
         $users = User::all();
         return response()->json($users, 200);
     }
 
-    // Delete user
+    // Delete User
     public function deleteUser($id)
     {
         $user = User::find($id);
@@ -179,7 +213,7 @@ class UserController extends Controller
         }
     }
 
-    // Get user by ID
+    // Get User By ID
     public function getUserById($id)
     {
         $user = User::find($id);
@@ -191,7 +225,7 @@ class UserController extends Controller
         }
     }
 
-    // Update user
+    // Update User
     public function updateUser(Request $request, $id)
     {
         $user = User::find($id);
@@ -216,48 +250,6 @@ class UserController extends Controller
             return response()->json(['error' => 'User not found'], 404);
         }
     }
-
-    // Forgot password
-    public function forgotPassword(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
-        }
-
-        $user = User::where('email', $request->email)->first();
-
-        if ($user) {
-            $token = Str::random(60);
-            $user->password_reset_token = $token;
-            $user->save();
-
-            $user->notify(new ForgotPassword($token));
-
-            return response()->json(['message' => 'Password reset email sent.'], 200);
-        } else {
-            return response()->json(['error' => 'User not found.'], 404);
-        }
-    }
-
-    public function verifyEmail($token)
-    {
-        $user = User::where('email_verification_token', $token)->first();
-
-        if ($user) {
-            $user->email_verified = true;
-            $user->email_verification_token = null;
-            $user->save();
-
-            $user->notify(new WelcomeEmail());
-
-            return response()->json(['message' => 'Email verified successfully.'], 200);
-        } else {
-            return response()->json(['error' => 'Invalid token.'], 400);
-        }
-    }
 }
+
 
