@@ -83,27 +83,33 @@ class UserController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        $user = User::create([
-            'first_name' => $request->firstName,
-            'last_name' => $request->lastName,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'telephone' => $request->telephone,
-            'country' => $request->country,
-            'address' => $request->address,
-            'address_cont' => $request->addressCont,
-            'state' => $request->state,
-            'city' => $request->city,
-            'postal_code' => $request->postalCode,
-            'email_verified' => false,
-            'email_verification_token' => Str::random(60),
-        ]);
+        $token = Str::random(60);
+        \Log::info('Generated verification token: ' . $token);
+
+        $user = new User();
+        $user->first_name = $request->firstName;
+        $user->last_name = $request->lastName;
+        $user->email = $request->email;
+        $user->password = Hash::make($request->password);
+        $user->telephone = $request->telephone;
+        $user->country = $request->country;
+        $user->address = $request->address;
+        $user->address_cont = $request->addressCont;
+        $user->state = $request->state;
+        $user->city = $request->city;
+        $user->postal_code = $request->postalCode;
+        $user->email_verified = false;
+        $user->email_verification_token = $token;
+
+        $user->save();
 
         if ($user) {
-            $user->notify(new ConfirmEmail($user->email_verification_token));
+            \Log::info('User created: ', $user->toArray());
+            $user->notify(new ConfirmEmail($token));
 
             return redirect()->route('register-form')->with('success', 'Registration successful! Please check your email to verify your account.');
         } else {
+            \Log::error('User creation failed');
             return back()->with('error', 'Registration failed! Please try again.');
         }
     }
@@ -112,9 +118,12 @@ class UserController extends Controller
     // Verify Email and Send Welcome Email
     public function verifyEmail($token)
     {
+        \Log::info('Verification token received: ' . $token);  // Logging the received token
+
         $user = User::where('email_verification_token', $token)->first();
 
         if ($user) {
+            \Log::info('User found for token: ' . $user->id);  // Logging user found for token
             $user->email_verified = true;
             $user->email_verification_token = null;
             $user->save();
@@ -123,9 +132,11 @@ class UserController extends Controller
 
             return redirect()->route('register-form')->with('success', 'Email verified successfully. Welcome!');
         } else {
+            \Log::error('Invalid token: ' . $token);  // Logging invalid token
             return redirect()->route('register-form')->with('error', 'Invalid token. Email verification failed.');
         }
     }
+
 
     // Forgot Password
     public function forgotPassword(Request $request)

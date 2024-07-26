@@ -32,5 +32,3 @@ class ConfirmEmail extends Notification
             ->line('If you did not create an account, no further action is required.');
     }
 }
-
-
