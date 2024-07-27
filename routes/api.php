@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 
@@ -17,3 +18,12 @@ Route::post('/pre-register', [UserController::class, 'preRegister']);
 Route::post('/register', [UserController::class, 'registerUser']);
 Route::post('/forgot-password', [UserController::class, 'forgotPassword']);
 Route::get('/email/verify/{token}', [UserController::class, 'verifyEmail']);
+
+Route::get('/products', [ProductController::class, 'getProducts']);
+Route::get('/products/{id}', [ProductController::class, 'getProductById']);
+Route::post('/products', [ProductController::class, 'createProduct'])
+    ->middleware('auth:sanctum');
+Route::put('/products/{id}', [ProductController::class, 'updateProduct'])
+    ->middleware('auth:sanctum');
+Route::delete('/products/{id}', [ProductController::class, 'deleteProduct'])
+    ->middleware('auth:sanctum');

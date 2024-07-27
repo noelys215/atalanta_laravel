@@ -4,11 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Cviebrock\EloquentSluggable\Sluggable;
 
 class Product extends Model
 {
-    use HasFactory, Sluggable;
+    use HasFactory;
 
     protected $fillable = [
         'name',
@@ -18,22 +17,13 @@ class Product extends Model
         'brand',
         'color',
         'description',
-        'slug',
-        'image',
         'inventory',
+        'image',
+        'slug',
     ];
 
     protected $casts = [
-        'image' => 'array',
         'inventory' => 'array',
+        'image' => 'array',
     ];
-
-    public function sluggable(): array
-    {
-        return [
-            'slug' => [
-                'source' => 'name'
-            ]
-        ];
-    }
 }
