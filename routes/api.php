@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
@@ -19,6 +20,7 @@ Route::post('/register', [UserController::class, 'registerUser']);
 Route::post('/forgot-password', [UserController::class, 'forgotPassword']);
 Route::get('/email/verify/{token}', [UserController::class, 'verifyEmail']);
 
+//Product Routes
 Route::get('/products', [ProductController::class, 'getProducts']);
 Route::get('/products/{id}', [ProductController::class, 'getProductById']);
 Route::post('/products', [ProductController::class, 'createProduct'])
@@ -27,3 +29,13 @@ Route::put('/products/{id}', [ProductController::class, 'updateProduct'])
     ->middleware('auth:sanctum');
 Route::delete('/products/{id}', [ProductController::class, 'deleteProduct'])
     ->middleware('auth:sanctum');
+
+//Order Routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/orders', [OrderController::class, 'addOrderItems']);
+    Route::get('/orders/{id}', [OrderController::class, 'getOrderById']);
+    Route::put('/orders/{id}/pay', [OrderController::class, 'updateOrderToPaid']);
+    Route::put('/orders/{id}/ship', [OrderController::class, 'updateOrderToShipped']);
+    Route::get('/orders/myorders', [OrderController::class, 'getMyOrders']);
+    Route::get('/orders', [OrderController::class, 'getOrders'])->middleware('is_admin');
+});
