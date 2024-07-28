@@ -17,3 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
+
+
+$user = \App\Models\User::where('email', 'admin@admin.com')->first();
+dd($user);
+
+$user->password = Hash::make('password');
+$user->save();

@@ -14,16 +14,16 @@ return new class extends Migration {
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('first_name');
-            $table->string('last_name');
-            $table->string('email')->unique();
-            $table->string('telephone');
-            $table->string('country');
-            $table->string('address');
+            $table->string('first_name')->default('John');
+            $table->string('last_name')->default('Doe');
+            $table->string('email')->unique()->default('john@atalanta.com');
+            $table->string('telephone')->default(' ');
+            $table->string('country')->default(' ');
+            $table->string('address')->default(' ');
             $table->string('address_cont')->nullable();
-            $table->string('state');
-            $table->string('city');
-            $table->string('postal_code');
+            $table->string('state')->default(' ');
+            $table->string('city')->default('NJ');
+            $table->string('postal_code')->default('08110');
             $table->string('password');
             $table->boolean('is_admin')->default(false);
             $table->timestamps();
