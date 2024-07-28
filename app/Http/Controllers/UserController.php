@@ -89,7 +89,7 @@ class UserController extends Controller
         $user->first_name = $request->firstName;
         $user->last_name = $request->lastName;
         $user->email = $request->email;
-        $user->password = Hash::make($request->password);
+        $user->password = $request->password; // Do not hash here, mutator will handle it
         $user->telephone = $request->telephone;
         $user->country = $request->country;
         $user->address = $request->address;

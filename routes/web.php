@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 
@@ -20,6 +21,11 @@ Route::get('/forgot-password', function () {
 Route::post('/forgot-password', [UserController::class, 'forgotPassword'])->name('forgot-password');
 
 Route::get('/email/verify/{token}', [UserController::class, 'verifyEmail'])->name('verify-email');
+
+
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login-form');
+Route::post('/login', [LoginController::class, 'login'])->name('login');
+
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [UserController::class, 'getUserProfile']);

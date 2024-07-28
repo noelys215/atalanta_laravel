@@ -51,8 +51,16 @@ class User extends Authenticatable implements FilamentUser
         return Hash::check($enteredPassword, $this->password);
     }
 
+    // Accessor to get full name
+    public function getNameAttribute()
+    {
+        return "{$this->first_name} {$this->last_name}";
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->is_admin;
     }
 }
+
+
