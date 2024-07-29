@@ -4,16 +4,14 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
-use Filament\Forms;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ToggleColumn;
+use Filament\Tables\Columns\ViewColumn;
 
 class UserResource extends Resource
 {
@@ -78,7 +76,8 @@ class UserResource extends Resource
                 TextColumn::make('state')->sortable()->searchable(),
                 TextColumn::make('city')->sortable()->searchable(),
                 TextColumn::make('postal_code')->sortable()->searchable(),
-                ToggleColumn::make('is_admin')->sortable()->searchable(),
+                ViewColumn::make('is_admin')
+                    ->view('livewire.toggle-is-admin', ['userId' => 'id', 'isAdmin' => 'is_admin']),
                 TextColumn::make('created_at')->dateTime()->sortable(),
                 TextColumn::make('updated_at')->dateTime()->sortable(),
             ])
@@ -113,3 +112,4 @@ class UserResource extends Resource
         ];
     }
 }
+

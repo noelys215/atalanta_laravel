@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Http\Livewire\ToggleColumnWithConfirmation;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Livewire::component('toggle-column-with-confirmation', ToggleColumnWithConfirmation::class);
     }
 }
