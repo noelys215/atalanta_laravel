@@ -18,20 +18,16 @@ class LoginController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->only('email', 'password');
-        \Log::info('Attempting login with credentials: ', $credentials);
 
         $user = User::where('email', $request->email)->first();
         if ($user) {
-            \Log::info('User found: ', $user->toArray());
-            \Log::info('Stored password hash: ' . $user->password);
             $passwordMatch = Hash::check($request->password, $user->password);
-            \Log::info('Password match: ' . ($passwordMatch ? 'true' : 'false'));
         } else {
             \Log::warning('User not found with email: ' . $request->email);
         }
 
         if ($passwordMatch && Auth::attempt($credentials)) {
-            return redirect()->intended('/admin'); // Change this to your intended route after login
+            return redirect()->intended('/admin'); // Change this to intended route after login
         }
 
         return redirect()->back()->with('error', 'These credentials do not match our records.');
