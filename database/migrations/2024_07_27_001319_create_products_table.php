@@ -18,10 +18,11 @@ return new class extends Migration {
             $table->text('description')->nullable();
             $table->json('inventory');
             $table->json('image');
-            $table->string('slug')->unique();
+            $table->string('slug')->nullable(); // Update this line
             $table->timestamps();
         });
     }
+
 
     public function down()
     {

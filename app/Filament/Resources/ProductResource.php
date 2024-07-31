@@ -57,10 +57,10 @@ class ProductResource extends Resource
                     ->columnSpan('full'),
                 FileUpload::make('image')
                     ->multiple()
-                    ->image(),
-                TextInput::make('slug')
-                    ->required()
-                    ->maxLength(255),
+                    ->image()
+                    ->disk('s3')
+                    ->directory('products')
+                    ->visibility('public'),
             ]);
     }
 
@@ -113,4 +113,5 @@ class ProductResource extends Resource
         ];
     }
 }
+
 

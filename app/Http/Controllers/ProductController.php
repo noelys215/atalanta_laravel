@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Product;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
@@ -42,22 +44,40 @@ class ProductController extends Controller
     // Create a new product
     public function createProduct(Request $request)
     {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric',
+            'category' => 'required|string|max:255',
+            'department' => 'required|string|max:255',
+            'brand' => 'required|string|max:255',
+            'color' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'inventory' => 'required|array',
+            'image' => 'required|array',
+            'image.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]);
+
+        $images = [];
+        if ($request->hasFile('image')) {
+            foreach ($request->file('image') as $file) {
+                $path = $file->store('products', 's3');
+                Storage::disk('s3')->setVisibility($path, 'public');
+                Storage::putFileAs('images', $path, $file);
+                $images[] = Storage::disk('s3')->url($path);
+            }
+        }
+
         $product = new Product([
-            'name' => 'Sample Name',
-            'price' => 0,
-            'category' => 'shirts',
-            'department' => 'woman',
-            'brand' => 'Nike',
-            'color' => 'Black',
-            'description' => 'N/A',
-            'inventory' => json_encode([
-                ['quantity' => 5, 'size' => 'XS'],
-                ['quantity' => 4, 'size' => 'SM'],
-                ['quantity' => 3, 'size' => 'MD'],
-            ]),
-            'image' => json_encode([
-                'https://res.cloudinary.com/dshviljjs/image/upload/v1671069321/Atalanta%20Uploads/STATIC/sample_rpm8f4.jpg',
-            ]),
+            'name' => $request->name,
+            'price' => $request->price,
+            'category' => $request->category,
+            'department' => $request->department,
+            'brand' => $request->brand,
+            'color' => $request->color,
+            'description' => $request->description,
+            'inventory' => json_encode($request->inventory),
+            'image' => json_encode($images),  // Store URLs directly
+            'slug' => Str::slug($request->name),
         ]);
 
         $product->save();
@@ -68,25 +88,47 @@ class ProductController extends Controller
     // Update a product by ID
     public function updateProduct(Request $request, $id)
     {
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'price' => 'sometimes|numeric',
+            'category' => 'sometimes|string|max:255',
+            'department' => 'sometimes|string|max:255',
+            'brand' => 'sometimes|string|max:255',
+            'color' => 'sometimes|string|max:255',
+            'description' => 'nullable|string',
+            'inventory' => 'sometimes|array',
+            'image' => 'sometimes|array',
+            'image.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]);
+
         $product = Product::find($id);
 
-        if ($product) {
-            $product->name = $request->input('name', $product->name);
-            $product->price = $request->input('price', $product->price);
-            $product->category = $request->input('category', $product->category);
-            $product->department = $request->input('department', $product->department);
-            $product->brand = $request->input('brand', $product->brand);
-            $product->color = $request->input('color', $product->color);
-            $product->description = $request->input('description', $product->description);
-            $product->inventory = $request->input('inventory', $product->inventory);
-            $product->image = $request->input('image', $product->image);
-            $product->slug = $request->input('slug', $product->slug);
-
-            $product->save();
-
-            return response()->json($product);
-        } else {
+        if (!$product) {
             return response()->json(['error' => 'Product Not Found'], 404);
         }
+
+        $images = json_decode($product->image, true);
+        if ($request->hasFile('image')) {
+            foreach ($request->file('image') as $file) {
+                $path = $file->store('products', 's3');
+                Storage::disk('s3')->setVisibility($path, 'public');
+                $images[] = Storage::disk('s3')->url($path);
+            }
+        }
+
+        $product->update([
+            'name' => $request->input('name', $product->name),
+            'price' => $request->input('price', $product->price),
+            'category' => $request->input('category', $product->category),
+            'department' => $request->input('department', $product->department),
+            'brand' => $request->input('brand', $product->brand),
+            'color' => $request->input('color', $product->color),
+            'description' => $request->input('description', $product->description),
+            'inventory' => $request->input('inventory', $product->inventory),
+            'image' => json_encode($images),  // Store URLs directly
+            'slug' => Str::slug($request->input('name', $product->name)),
+        ]);
+
+        return response()->json($product);
     }
 }
