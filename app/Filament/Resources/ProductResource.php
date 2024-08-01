@@ -15,6 +15,7 @@ use Filament\Tables\Table;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BooleanColumn;
+use Illuminate\Support\Str;
 
 class ProductResource extends Resource
 {
@@ -28,7 +29,10 @@ class ProductResource extends Resource
             ->schema([
                 TextInput::make('name')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->afterStateUpdated(function (callable $set, $state) {
+                        $set('slug', Str::slug($state));
+                    }),
                 TextInput::make('price')
                     ->required()
                     ->numeric(),
@@ -61,6 +65,11 @@ class ProductResource extends Resource
                     ->disk('s3')
                     ->directory('products')
                     ->visibility('public'),
+                TextInput::make('slug')
+                    ->required()
+                    ->maxLength(255)
+                    ->disabled()
+                    ->dehydrated(false),
             ]);
     }
 
@@ -113,5 +122,4 @@ class ProductResource extends Resource
         ];
     }
 }
-
 

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('/', function () {
     return redirect('/register');
@@ -37,3 +38,10 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 
+
+use Illuminate\Support\Facades\Log;
+
+Route::get('/test-log', function () {
+    Log::info('This is a test log entry.');
+    return 'Log entry created!';
+});
