@@ -15,6 +15,7 @@ use Filament\Tables\Table;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BooleanColumn;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ProductResource extends Resource
@@ -64,7 +65,18 @@ class ProductResource extends Resource
                     ->image()
                     ->disk('s3')
                     ->directory('products')
-                    ->visibility('public'),
+                    ->visibility('public')
+                    ->saveUploadedFileUsing(function ($file, $state, $set) {
+                        $path = $file->store('products', 's3');
+                        Storage::disk('s3')->setVisibility($path, 'public');
+                        $url = "https://atalantaimages.s3.amazonaws.com/" . $path;
+
+                        // Append URL to images array
+                        $state[] = $url;
+                        $set('image', $state);
+
+                        return $url;
+                    }),
                 TextInput::make('slug')
                     ->required()
                     ->maxLength(255)
@@ -122,4 +134,3 @@ class ProductResource extends Resource
         ];
     }
 }
-

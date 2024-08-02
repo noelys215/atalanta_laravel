@@ -34,10 +34,11 @@ class ProductController extends Controller
                     $path = $file->store('products', 's3');
                     Storage::disk('s3')->setVisibility($path, 'public');
 
-                    $url = "https://atalantaimages.s3.amazonaws.com/" . $path;
+                    $url = Storage::disk('s3')->url($path);
                     $images[] = $url;
 
                 } catch (\Exception $e) {
+                    Log::error('Error uploading image to S3: ' . $e->getMessage());
                     return response()->json(['error' => $e->getMessage()], 500);
                 }
             }

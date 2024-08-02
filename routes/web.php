@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Storage;
@@ -26,6 +27,8 @@ Route::get('/email/verify/{token}', [UserController::class, 'verifyEmail'])->nam
 
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login-form');
 Route::post('/login', [LoginController::class, 'login'])->name('login');
+//Route::post('/products/create', [ProductController::class, 'createProduct'])->name('products.create');
+
 
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -39,9 +42,3 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
-use Illuminate\Support\Facades\Log;
-
-Route::get('/test-log', function () {
-    Log::info('This is a test log entry.');
-    return 'Log entry created!';
-});
