@@ -6,6 +6,7 @@ use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -15,8 +16,8 @@ use Filament\Tables\Table;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BooleanColumn;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class ProductResource extends Resource
 {
@@ -49,12 +50,20 @@ class ProductResource extends Resource
                 TextInput::make('color')
                     ->required()
                     ->maxLength(255),
-                Textarea::make('description'),
+                Textarea::make('description')->rows(5)->autosize()->columnSpan('full'),
                 Repeater::make('inventory')
                     ->schema([
-                        TextInput::make('size')
-                            ->required()
-                            ->maxLength(255),
+                        Select::make('size')
+                            ->options([
+                                'XS' => 'XS',
+                                'S' => 'S',
+                                'M' => 'M',
+                                'L' => 'L',
+                                'XL' => 'XL',
+                                'XXL' => 'XXL',
+                                'OS' => 'OS',
+                            ])
+                            ->required(),
                         TextInput::make('quantity')
                             ->required()
                             ->numeric(),
@@ -63,7 +72,9 @@ class ProductResource extends Resource
                 FileUpload::make('image')
                     ->multiple()
                     ->image()
+                    ->reorderable()
                     ->disk('s3')
+                    ->panelLayout('grid')
                     ->directory('products')
                     ->visibility('public')
                     ->saveUploadedFileUsing(function ($file, $state, $set) {
@@ -79,9 +90,7 @@ class ProductResource extends Resource
                     }),
                 TextInput::make('slug')
                     ->required()
-                    ->maxLength(255)
-                    ->disabled()
-                    ->dehydrated(false),
+                    ->maxLength(255),
             ]);
     }
 
@@ -132,5 +141,17 @@ class ProductResource extends Resource
             'create' => Pages\CreateProduct::route('/create'),
             'edit' => Pages\EditProduct::route('/{record}/edit'),
         ];
+    }
+
+    public static function mutateFormDataBeforeCreate(array $data): array
+    {
+        $data['slug'] = Str::slug($data['name']);
+        return $data;
+    }
+
+    public static function mutateFormDataBeforeSave(array $data): array
+    {
+        $data['slug'] = Str::slug($data['name']);
+        return $data;
     }
 }

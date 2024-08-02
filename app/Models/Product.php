@@ -26,4 +26,12 @@ class Product extends Model
         'inventory' => 'array',
         'image' => 'array',
     ];
+
+    public function setInventoryAttribute($value)
+    {
+        foreach ($value as &$item) {
+            $item['quantity'] = (int)$item['quantity'];
+        }
+        $this->attributes['inventory'] = json_encode($value);
+    }
 }
