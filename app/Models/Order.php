@@ -31,10 +31,39 @@ class Order extends Model
         'payment_result' => 'array',
     ];
 
+    // Mutator to ensure order_items quantity and price are saved as numbers
+    public function setOrderItemsAttribute($value)
+    {
+        foreach ($value as &$item) {
+            $item['quantity'] = (int)$item['quantity'];
+            $item['price'] = (float)$item['price'];
+        }
+        $this->attributes['order_items'] = json_encode($value);
+    }
+
+    // Mutators to ensure prices are saved as numbers
+    public function setItemsPriceAttribute($value)
+    {
+        $this->attributes['items_price'] = (float)$value;
+    }
+
+    public function setTaxPriceAttribute($value)
+    {
+        $this->attributes['tax_price'] = (float)$value;
+    }
+
+    public function setShippingPriceAttribute($value)
+    {
+        $this->attributes['shipping_price'] = (float)$value;
+    }
+
+    public function setTotalPriceAttribute($value)
+    {
+        $this->attributes['total_price'] = (float)$value;
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 }
-
-

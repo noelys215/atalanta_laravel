@@ -27,6 +27,13 @@ class Product extends Model
         'image' => 'array',
     ];
 
+    // Mutator to ensure price is saved as a number
+    public function setPriceAttribute($value)
+    {
+        $this->attributes['price'] = (float)$value;
+    }
+
+    // Mutator to ensure inventory quantity is saved as a number
     public function setInventoryAttribute($value)
     {
         foreach ($value as &$item) {

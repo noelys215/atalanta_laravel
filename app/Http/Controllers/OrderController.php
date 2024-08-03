@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Order;
+use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
@@ -13,6 +15,11 @@ class OrderController extends Controller
     {
         $request->validate([
             'orderItems' => 'required|array|min:1',
+            'orderItems.*.name' => 'required|string|max:255',
+            'orderItems.*.quantity' => 'required|integer|min:1',
+            'orderItems.*.price' => 'required|numeric',
+            'orderItems.*.image' => 'required|url',
+            'orderItems.*.selectedSize' => 'required|string|max:255',
             'shippingAddress' => 'required|array',
             'paymentMethod' => 'required|string',
             'itemsPrice' => 'required|numeric',
@@ -51,7 +58,7 @@ class OrderController extends Controller
         }
     }
 
-    // Update Order to Paid
+    // Update Order to Paid and Adjust Inventory
     public function updateOrderToPaid(Request $request, $id)
     {
         $order = Order::find($id);
@@ -67,6 +74,23 @@ class OrderController extends Controller
             ]);
 
             $order->save();
+
+            // Adjust inventory
+            foreach (json_decode($order->order_items, true) as $item) {
+                $product = Product::where('name', $item['name'])->first();
+                if ($product) {
+                    $inventory = $product->inventory;
+                    foreach ($inventory as &$invItem) {
+                        if ($invItem['size'] == $item['selectedSize']) {
+                            Log::info('Adjusting inventory for product: ' . $product->name . ', size: ' . $item['selectedSize'] . ', quantity before: ' . $invItem['quantity']);
+                            $invItem['quantity'] -= $item['quantity'];
+                            Log::info('Quantity after adjustment: ' . $invItem['quantity']);
+                        }
+                    }
+                    $product->inventory = $inventory;
+                    $product->save();
+                }
+            }
 
             return response()->json($order);
         } else {

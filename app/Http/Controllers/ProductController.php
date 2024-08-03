@@ -38,6 +38,7 @@ class ProductController extends Controller
                     $images[] = $url;
 
                 } catch (\Exception $e) {
+                    Log::error('Error uploading image to S3: ' . $e->getMessage());
                     return response()->json(['error' => $e->getMessage()], 500);
                 }
             }
@@ -52,17 +53,17 @@ class ProductController extends Controller
                 'brand' => $request->brand,
                 'color' => $request->color,
                 'description' => $request->description,
-                'inventory' => json_encode($request->inventory),
-                'image' => json_encode($images),  // Store URLs directly
+                'inventory' => $request->inventory,
+                'image' => $images,  // Store URLs directly
                 'slug' => Str::slug($request->name),
             ]);
 
             $product->save();
-            Log::info('Product created successfully: ' . $product->id);
 
             // Navigate back to admin/products
             return redirect()->route('filament.resources.products.index')->with('success', 'Product created successfully.');
         } catch (\Exception $e) {
+            Log::error('Error creating product: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
