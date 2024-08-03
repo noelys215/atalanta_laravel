@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\OrderResource\Pages;
 use App\Models\Order;
 use App\Models\Product;
+use App\Notifications\OrderPaidNotification;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Repeater;
@@ -17,14 +18,13 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Actions\CreateAction;
-use Filament\Tables\Actions\Action;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 
 class OrderResource extends Resource
 {
     protected static ?string $model = Order::class;
 
-    // Change the icon to one that is available
     protected static ?string $navigationIcon = 'heroicon-o-document';
 
     public static function form(Form $form): Form
@@ -69,27 +69,7 @@ class OrderResource extends Resource
                     ->required()
                     ->numeric(),
                 Toggle::make('is_paid')
-                    ->required()
-                    ->afterStateUpdated(function ($state, $record) {
-                        if ($state) {
-                            Log::info('Order marked as paid: ' . $record->id);
-                            foreach ($record->order_items as $item) {
-                                $product = Product::where('name', $item['name'])->first();
-                                if ($product) {
-                                    $inventory = $product->inventory;
-                                    foreach ($inventory as &$invItem) {
-                                        if ($invItem['size'] == $item['selectedSize']) {
-                                            Log::info('Adjusting inventory for product: ' . $product->name . ', size: ' . $item['selectedSize'] . ', quantity before: ' . $invItem['quantity']);
-                                            $invItem['quantity'] -= $item['quantity'];
-                                            Log::info('Quantity after adjustment: ' . $invItem['quantity']);
-                                        }
-                                    }
-                                    $product->inventory = $inventory;
-                                    $product->save();
-                                }
-                            }
-                        }
-                    }),
+                    ->required(),
                 DateTimePicker::make('paid_at'),
                 Toggle::make('is_shipped')
                     ->required(),
@@ -123,32 +103,6 @@ class OrderResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-                Action::make('cancelOrder')
-                    ->label('Cancel Order')
-                    ->action(function ($record) {
-                        if ($record->is_paid) {
-                            Log::info('Order canceled: ' . $record->id);
-                            foreach ($record->order_items as $item) {
-                                $product = Product::where('name', $item['name'])->first();
-                                if ($product) {
-                                    $inventory = $product->inventory;
-                                    foreach ($inventory as &$invItem) {
-                                        if ($invItem['size'] == $item['selectedSize']) {
-                                            Log::info('Restoring inventory for product: ' . $product->name . ', size: ' . $item['selectedSize'] . ', quantity before: ' . $invItem['quantity']);
-                                            $invItem['quantity'] += $item['quantity'];
-                                            Log::info('Quantity after restoration: ' . $invItem['quantity']);
-                                        }
-                                    }
-                                    $product->inventory = $inventory;
-                                    $product->save();
-                                }
-                            }
-                        }
-                        $record->delete();
-                    })
-                    ->requiresConfirmation()
-                    ->color('danger')
-                    ->icon('heroicon-o-trash'),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
@@ -172,5 +126,64 @@ class OrderResource extends Resource
             'create' => Pages\CreateOrder::route('/create'),
             'edit' => Pages\EditOrder::route('/{record}/edit'),
         ];
+    }
+
+    public static function handleOrderPaid(Order $order)
+    {
+        if ($order->is_paid) {
+            Log::info('Order marked as paid: ' . $order->id);
+
+            if ($order->user) {
+                $orderItems = is_string($order->order_items) ? json_decode($order->order_items, true) : $order->order_items;
+                foreach ($orderItems as $item) {
+                    $product = Product::where('name', $item['name'])->first();
+                    if ($product) {
+                        $inventory = is_string($product->inventory) ? json_decode($product->inventory, true) : $product->inventory;
+                        foreach ($inventory as &$invItem) {
+                            if ($invItem['size'] == $item['selectedSize']) {
+                                Log::info('Adjusting inventory for product: ' . $product->name . ', size: ' . $item['selectedSize'] . ', quantity before: ' . $invItem['quantity']);
+                                $invItem['quantity'] -= $item['quantity'];
+                                Log::info('Quantity after adjustment: ' . $invItem['quantity']);
+                            }
+                        }
+                        $product->inventory = $inventory;
+                        $product->save();
+                    }
+                }
+
+                // Send email to the user
+                Notification::send($order->user, new OrderPaidNotification($order));
+            } else {
+                Log::error('User not found for order ID: ' . $order->id);
+            }
+        }
+    }
+
+    public static function handleOrderCancelled(Order $order)
+    {
+        if ($order->is_paid) {
+            Log::info('Order marked as cancelled: ' . $order->id);
+
+            if ($order->user) {
+                $orderItems = is_string($order->order_items) ? json_decode($order->order_items, true) : $order->order_items;
+                foreach ($orderItems as $item) {
+                    $product = Product::where('name', $item['name'])->first();
+                    if ($product) {
+                        $inventory = is_string($product->inventory) ? json_decode($product->inventory, true) : $product->inventory;
+                        foreach ($inventory as &$invItem) {
+                            if ($invItem['size'] == $item['selectedSize']) {
+                                Log::info('Restoring inventory for product: ' . $product->name . ', size: ' . $item['selectedSize'] . ', quantity before: ' . $invItem['quantity']);
+                                $invItem['quantity'] += $item['quantity'];
+                                Log::info('Quantity after restoration: ' . $invItem['quantity']);
+                            }
+                        }
+                        $product->inventory = $inventory;
+                        $product->save();
+                    }
+                }
+            } else {
+                Log::error('User not found for order ID: ' . $order->id);
+            }
+        }
     }
 }
