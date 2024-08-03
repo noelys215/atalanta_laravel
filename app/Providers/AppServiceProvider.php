@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
+use App\Livewire\ToggleIsAdmin;
 use Illuminate\Support\ServiceProvider;
-use App\Http\Livewire\ToggleColumnWithConfirmation;
 use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,8 +19,8 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
+    public function boot()
     {
-        Livewire::component('toggle-column-with-confirmation', ToggleColumnWithConfirmation::class);
+        Livewire::component('toggle-is-admin', ToggleIsAdmin::class);
     }
 }

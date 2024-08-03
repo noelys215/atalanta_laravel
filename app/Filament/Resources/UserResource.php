@@ -8,6 +8,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -58,7 +59,7 @@ class UserResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Toggle::make('is_admin')
-                    ->required(),
+                    ->required()->default(false),
             ]);
     }
 
@@ -76,8 +77,7 @@ class UserResource extends Resource
                 TextColumn::make('state')->sortable()->searchable(),
                 TextColumn::make('city')->sortable()->searchable(),
                 TextColumn::make('postal_code')->sortable()->searchable(),
-                ViewColumn::make('is_admin')
-                    ->view('livewire.toggle-is-admin', ['userId' => 'id', 'isAdmin' => 'is_admin']),
+                ToggleColumn::make('is_admin')->sortable()->searchable(),
                 TextColumn::make('created_at')->dateTime()->sortable(),
                 TextColumn::make('updated_at')->dateTime()->sortable(),
             ])

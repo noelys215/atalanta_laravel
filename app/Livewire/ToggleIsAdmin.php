@@ -19,9 +19,12 @@ class ToggleIsAdmin extends Component
     public function toggle()
     {
         $user = User::find($this->userId);
-        $user->is_admin = !$user->is_admin;
-        $user->save();
-        $this->isAdmin = $user->is_admin;
+        if ($user) {
+            $user->is_admin = !$user->is_admin;
+            $user->save();
+            $this->isAdmin = $user->is_admin;
+            $this->emit('userUpdated', $user->id);
+        }
     }
 
     public function render()
