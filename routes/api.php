@@ -19,6 +19,8 @@ Route::post('/pre-register', [UserController::class, 'preRegister']);
 Route::post('/register', [UserController::class, 'registerUser']);
 Route::post('/forgot-password', [UserController::class, 'forgotPassword']);
 Route::get('/email/verify/{token}', [UserController::class, 'verifyEmail']);
+Route::post('/login', [UserController::class, 'authUser']);
+
 
 //Product Routes
 Route::get('/products', [ProductController::class, 'getProducts']);
@@ -32,10 +34,11 @@ Route::delete('/products/{id}', [ProductController::class, 'deleteProduct'])
 
 //Order Routes
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/orders/myorders', [OrderController::class, 'getMyOrders']);
     Route::post('/orders', [OrderController::class, 'addOrderItems']);
     Route::get('/orders/{id}', [OrderController::class, 'getOrderById']);
     Route::put('/orders/{id}/pay', [OrderController::class, 'updateOrderToPaid']);
     Route::put('/orders/{id}/ship', [OrderController::class, 'updateOrderToShipped']);
-    Route::get('/orders/myorders', [OrderController::class, 'getMyOrders']);
     Route::get('/orders', [OrderController::class, 'getOrders'])->middleware('is_admin');
 });
+

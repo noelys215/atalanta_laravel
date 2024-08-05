@@ -118,9 +118,33 @@ class OrderController extends Controller
     // Get User Orders
     public function getMyOrders()
     {
-        $orders = Order::where('user_id', Auth::id())->get();
+        Log::info('Entering getMyOrders method');
+
+        if (!Auth::check()) {
+            Log::error('Unauthenticated access attempt');
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $userId = Auth::id();
+        Log::info('Authenticated user ID: ' . $userId);
+
+        if (!$userId) {
+            Log::error('User not found');
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        $orders = Order::where('user_id', $userId)->get();
+        Log::info('Orders retrieved: ' . $orders->count());
+
+        if ($orders->isEmpty()) {
+            Log::error('No orders found for user ID: ' . $userId);
+            return response()->json(['error' => 'No orders found for user'], 404);
+        }
+
         return response()->json($orders);
     }
+
+
 
     // Get All Orders (Admin)
     public function getOrders()
