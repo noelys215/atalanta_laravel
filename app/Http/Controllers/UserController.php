@@ -62,7 +62,7 @@ class UserController extends Controller
         return response()->json(['ok' => true], 200);
     }
 
-    // Register New User
+// Register New User
     public function registerUser(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -80,6 +80,9 @@ class UserController extends Controller
         ]);
 
         if ($validator->fails()) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => $validator->errors()], 400);
+            }
             return back()->withErrors($validator)->withInput();
         }
 
@@ -105,8 +108,14 @@ class UserController extends Controller
         if ($user) {
             $user->notify(new ConfirmEmail($token));
 
+            if ($request->expectsJson()) {
+                return response()->json(['success' => 'Registration successful! Please check your email to verify your account.'], 201);
+            }
             return redirect()->route('register-form')->with('success', 'Registration successful! Please check your email to verify your account.');
         } else {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Registration failed! Please try again.'], 500);
+            }
             return back()->with('error', 'Registration failed! Please try again.');
         }
     }
