@@ -67,4 +67,45 @@ class ProductController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+
+    // Get all products with search functionality
+    public function getProducts(Request $request)
+    {
+        try {
+            $query = Product::query();
+
+            if ($request->has('search')) {
+                $search = $request->input('search');
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('category', 'like', '%' . $search . '%')
+                        ->orWhere('brand', 'like', '%' . $search . '%');
+                });
+            }
+
+            $products = $query->get();
+
+            return response()->json($products);
+        } catch (\Exception $e) {
+            Log::error('Error fetching products: ' . $e->getMessage());
+            return response()->json(['error' => 'Error fetching products'], 500);
+        }
+    }
+
+    // Get a single product by ID
+    public function getProductById($id)
+    {
+        try {
+            $product = Product::find($id);
+            if ($product) {
+                return response()->json($product);
+            } else {
+                return response()->json(['error' => 'Product not found'], 404);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error fetching product: ' . $e->getMessage());
+            return response()->json(['error' => 'Error fetching product'], 500);
+        }
+    }
 }
