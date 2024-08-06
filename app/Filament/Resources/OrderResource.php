@@ -53,6 +53,8 @@ class OrderResource extends Resource
                             ->maxLength(255),
                     ])
                     ->columnSpan('full'),
+
+
                 TextInput::make('payment_method')
                     ->required()
                     ->maxLength(255),
@@ -62,21 +64,38 @@ class OrderResource extends Resource
                 TextInput::make('tax_price')
                     ->required()
                     ->numeric(),
+
+
                 TextInput::make('shipping_price')
                     ->required()
                     ->numeric(),
                 TextInput::make('total_price')
                     ->required()
                     ->numeric(),
-                Toggle::make('is_paid')
-                    ->required(),
-                DateTimePicker::make('paid_at'),
-                Toggle::make('is_shipped')
-                    ->required(),
+                TextInput::make('payment_result'),
                 DateTimePicker::make('shipped_at'),
-                Textarea::make('shipping_address')
+                DateTimePicker::make('paid_at'),
+
+                TextInput::make('shipping_address.street')
+                    ->label('Street')
                     ->required(),
-                Textarea::make('payment_result'),
+
+                TextInput::make('shipping_address.city')
+                    ->label('City')
+                    ->required(),
+                TextInput::make('shipping_address.state')
+                    ->label('State')
+                    ->required(),
+                TextInput::make('shipping_address.postalCode')
+                    ->label('ZIP')
+                    ->required(),
+                TextInput::make('shipping_address.country')
+                    ->label('Country')->columnSpan(1),
+
+                Toggle::make('is_paid')->columnSpan(2)
+                    ->required(),
+                Toggle::make('is_shipped')->columnSpan(2)
+                    ->required(),
             ]);
     }
 
