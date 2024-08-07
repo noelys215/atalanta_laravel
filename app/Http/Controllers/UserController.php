@@ -167,6 +167,31 @@ class UserController extends Controller
         }
     }
 
+    public function resetPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'token' => 'required',
+            'email' => 'required|email',
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 400);
+        }
+
+        $user = User::where('email', $request->email)->where('password_reset_token', $request->token)->first();
+
+        if (!$user) {
+            return response()->json(['error' => 'Invalid token or email'], 400);
+        }
+
+        $user->password = Hash::make($request->password);
+        $user->password_reset_token = null; // Clear the reset token
+        $user->save();
+
+        return response()->json(['message' => 'Password has been reset successfully.'], 200);
+    }
+
 
     // Get User Profile
     public function getUserProfile()
