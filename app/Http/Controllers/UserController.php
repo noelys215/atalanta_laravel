@@ -167,6 +167,7 @@ class UserController extends Controller
         }
     }
 
+
     // Get User Profile
     public function getUserProfile()
     {
