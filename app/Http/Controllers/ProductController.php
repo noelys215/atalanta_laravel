@@ -13,7 +13,6 @@ class ProductController extends Controller
     // Create a new product
     public function createProduct(Request $request)
     {
-        Log::info('createProduct method called');
         $request->validate([
             'name' => 'required|string|max:255',
             'price' => 'required|numeric',
@@ -63,7 +62,6 @@ class ProductController extends Controller
             // Navigate back to admin/products
             return redirect()->route('filament.resources.products.index')->with('success', 'Product created successfully.');
         } catch (\Exception $e) {
-            Log::error('Error creating product: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -88,7 +86,6 @@ class ProductController extends Controller
 
             return response()->json($products);
         } catch (\Exception $e) {
-            Log::error('Error fetching products: ' . $e->getMessage());
             return response()->json(['error' => 'Error fetching products'], 500);
         }
     }
@@ -104,7 +101,6 @@ class ProductController extends Controller
                 return response()->json(['error' => 'Product not found'], 404);
             }
         } catch (\Exception $e) {
-            Log::error('Error fetching product: ' . $e->getMessage());
             return response()->json(['error' => 'Error fetching product'], 500);
         }
     }

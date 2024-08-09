@@ -150,7 +150,6 @@ class OrderResource extends Resource
     public static function handleOrderPaid(Order $order)
     {
         if ($order->is_paid) {
-            Log::info('Order marked as paid: ' . $order->id);
 
             if ($order->user) {
                 $orderItems = is_string($order->order_items) ? json_decode($order->order_items, true) : $order->order_items;
