@@ -18,6 +18,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Actions\CreateAction;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
@@ -172,7 +173,7 @@ class OrderResource extends Resource
                 // Send email to the user
                 Notification::send($order->user, new OrderPaidNotification($order));
             } else {
-                Log::error('User not found for order ID: ' . $order->id);
+                throw new ModelNotFoundException('User not found for order ID: ' . $order->id);
             }
         }
     }
