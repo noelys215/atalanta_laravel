@@ -82,6 +82,12 @@ class ProductController extends Controller
                 });
             }
 
+            // Apply department filter
+            if ($request->has('department')) {
+                $department = $request->input('department');
+                $query->where('department', $department);
+            }
+
             $products = $query->get();
 
             return response()->json($products);
