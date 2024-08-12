@@ -33,6 +33,8 @@ Route::post('/login', [UserController::class, 'authUser']);
 // Product Routes
 Route::get('/products', [ProductController::class, 'getProducts']);
 Route::get('/products/{id}', [ProductController::class, 'getProductById']);
+Route::get('/products/slug/{slug}', [ProductController::class, 'getProductBySlug']);
+
 Route::post('/products', [ProductController::class, 'createProduct'])
     ->middleware('auth:sanctum');
 Route::put('/products/{id}', [ProductController::class, 'updateProduct'])

@@ -93,6 +93,8 @@ class ProductController extends Controller
                 $query->where('category', $category);
             }
 
+
+
             $products = $query->get();
 
             return response()->json($products);
@@ -115,4 +117,22 @@ class ProductController extends Controller
             return response()->json(['error' => 'Error fetching product'], 500);
         }
     }
+
+    // Get a single product by slug
+    public function getProductBySlug($slug)
+    {
+        try {
+            $product = Product::where('slug', $slug)->first();
+            if ($product) {
+                return response()->json($product);
+            } else {
+                return response()->json(['error' => 'Product not found'], 404);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error fetching product'], 500);
+        }
+    }
+
 }
+
+
