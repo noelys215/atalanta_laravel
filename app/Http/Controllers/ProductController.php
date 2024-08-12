@@ -88,6 +88,11 @@ class ProductController extends Controller
                 $query->where('department', $department);
             }
 
+            if ($request->has('category')) {
+                $category = $request->input('category');
+                $query->where('category', $category);
+            }
+
             $products = $query->get();
 
             return response()->json($products);
