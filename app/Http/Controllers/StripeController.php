@@ -17,18 +17,19 @@ class StripeController extends Controller
     public function createCheckoutSession(Request $request)
     {
         $request->validate([
-            'price_id' => 'required|string',
-            'quantity' => 'required|integer|min:1',
+            'line_items' => 'required|array',
         ]);
-
         $checkoutSession = $this->stripeService->createCheckoutSession(
-            $request->input('price_id'),
-            $request->input('quantity'),
+            $request->input('line_items'),
             url('/return?session_id={CHECKOUT_SESSION_ID}')
         );
 
-        return response()->json(['clientSecret' => $checkoutSession->id]);
+        return response()->json([
+            'sessionId' => $checkoutSession->id,
+            'clientSecret' => $checkoutSession->client_secret
+        ]);
     }
+
 
     public function retrieveCheckoutSession(Request $request)
     {

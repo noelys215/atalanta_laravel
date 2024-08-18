@@ -13,14 +13,11 @@ class StripeService
         $this->stripe = new StripeClient(env('STRIPE_SECRET_KEY'));
     }
 
-    public function createCheckoutSession($priceId, $quantity = 1, $returnUrl)
+    public function createCheckoutSession($lineItems, $returnUrl)
     {
         return $this->stripe->checkout->sessions->create([
             'ui_mode' => 'embedded',
-            'line_items' => [[
-                'price' => $priceId,
-                'quantity' => $quantity,
-            ]],
+            'line_items' => $lineItems,
             'mode' => 'payment',
             'return_url' => $returnUrl,
         ]);
