@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\StripeController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 
@@ -41,3 +42,7 @@ Route::put('/products/{id}', [ProductController::class, 'updateProduct'])
     ->middleware('auth:sanctum');
 Route::delete('/products/{id}', [ProductController::class, 'deleteProduct'])
     ->middleware('auth:sanctum');
+
+// Stripe Routes
+Route::post('/stripe/create-checkout-session', [StripeController::class, 'createCheckoutSession']);
+Route::post('/stripe/retrieve-checkout-session', [StripeController::class, 'retrieveCheckoutSession']);
