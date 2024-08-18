@@ -18,10 +18,15 @@ class StripeController extends Controller
     {
         $request->validate([
             'line_items' => 'required|array',
+            'user_info' => 'required|array', // Validate that user_info is passed
         ]);
+
+        $userInfo = $request->input('user_info');
+
         $checkoutSession = $this->stripeService->createCheckoutSession(
             $request->input('line_items'),
-            url('/return?session_id={CHECKOUT_SESSION_ID}')
+            url('/return?session_id={CHECKOUT_SESSION_ID}'),
+            $userInfo
         );
 
         return response()->json([
@@ -29,7 +34,6 @@ class StripeController extends Controller
             'clientSecret' => $checkoutSession->client_secret
         ]);
     }
-
 
     public function retrieveCheckoutSession(Request $request)
     {
@@ -42,7 +46,11 @@ class StripeController extends Controller
 
             return response()->json([
                 'status' => $session->status,
-                'customer_email' => $session->customer_details->email ?? null,
+                'customer_email' => $session->customer_email ?? null,
+                'total_tax' => $session->total_details->amount_tax,
+                'payment_method' => $session->payment_method_types[0] ?? null,
+                'billing_address' => $session->billing_address_collection ?? null,
+                'shipping_address' => $session->shipping_address_collection ?? null,
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
