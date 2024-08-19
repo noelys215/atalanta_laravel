@@ -49,8 +49,13 @@ class StripeService
 
     public function retrieveCheckoutSession($sessionId)
     {
-        return $this->stripe->checkout->sessions->retrieve($sessionId);
+        $session = $this->stripe->checkout->sessions->retrieve($sessionId, [
+            'expand' => ['line_items.data.price.product']
+        ]);
+
+        return $session;
     }
+
 
     public function retrieveLineItems($sessionId)
     {

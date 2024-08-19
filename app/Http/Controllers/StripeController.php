@@ -43,15 +43,16 @@ class StripeController extends Controller
 
         try {
             $session = $this->stripeService->retrieveCheckoutSession($request->input('session_id'));
-            $lineItemsResponse = $this->stripeService->retrieveLineItems($request->input('session_id'));
 
-            // Extract line items details
+            // Extract line items details including images
             $lineItems = [];
-            foreach ($lineItemsResponse->data as $item) {
+            foreach ($session->line_items->data as $item) {
+                $product = $item->price->product;
                 $lineItems[] = [
                     'description' => $item->description,
                     'quantity' => $item->quantity,
                     'price' => $item->amount_total / 100, // Convert to dollars if in cents
+                    'image' => $product->images[0] ?? null // Assuming there is at least one image
                 ];
             }
 
@@ -72,4 +73,5 @@ class StripeController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
 }
