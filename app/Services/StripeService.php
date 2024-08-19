@@ -79,4 +79,20 @@ class StripeService
     }
 
 
+
+    public function retrieveSessionByEmailAndOrderId($email, $orderId)
+    {
+        // Retrieve the session using the order ID
+        $session = $this->stripe->checkout->sessions->retrieve($orderId, [
+            'expand' => ['line_items.data.price.product']
+        ]);
+
+        // Ensure the session belongs to the provided email
+        if ($session && isset($session->customer_details->email) && $session->customer_details->email === $email) {
+            return $session;
+        }
+
+        return null; // Return null if no matching session is found
+    }
+
 }

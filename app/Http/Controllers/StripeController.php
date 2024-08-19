@@ -116,4 +116,53 @@ class StripeController extends Controller
     }
 
 
+    public function getOrderByEmailAndOrderId(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'order_id' => 'required|string',
+        ]);
+
+        try {
+            $session = $this->stripeService->retrieveSessionByEmailAndOrderId(
+                $request->input('email'),
+                $request->input('order_id')
+            );
+
+            if (!$session) {
+                return response()->json(['error' => 'Order not found'], 404);
+            }
+
+            // Extract line items details including images
+            $lineItems = [];
+            foreach ($session->line_items->data as $item) {
+                $product = $item->price->product;
+                $lineItems[] = [
+                    'description' => $item->description,
+                    'quantity' => $item->quantity,
+                    'price' => $item->amount_total / 100, // Convert to dollars if in cents
+                    'image' => $product->images[0] ?? null // Assuming there is at least one image
+                ];
+            }
+
+            return response()->json([
+                'status' => $session->status,
+                'customer_name' => $session->customer_details->name ?? null,
+                'customer_email' => $session->customer_email ?? null,
+                'billing_address' => $session->customer_details->address ?? null,
+                'shipping_address' => $session->shipping_details ?? null,
+                'order_date' => $session->created, // Add order date to the response
+                'order_details' => [
+                    'line_items' => $lineItems,
+                    'shipping_cost' => $session->total_details->amount_shipping / 100, // Convert to dollars if in cents
+                    'tax' => $session->total_details->amount_tax / 100, // Convert to dollars if in cents
+                    'total_price' => $session->amount_total / 100, // Convert to dollars if in cents
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+
 }
