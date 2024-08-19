@@ -25,7 +25,7 @@ class StripeController extends Controller
 
         $checkoutSession = $this->stripeService->createCheckoutSession(
             $request->input('line_items'),
-            url('/return?session_id={CHECKOUT_SESSION_ID}'),
+            url('http://localhost:5173/return?session_id={CHECKOUT_SESSION_ID}'),
             $userInfo
         );
 
@@ -43,14 +43,30 @@ class StripeController extends Controller
 
         try {
             $session = $this->stripeService->retrieveCheckoutSession($request->input('session_id'));
+            $lineItemsResponse = $this->stripeService->retrieveLineItems($request->input('session_id'));
+
+            // Extract line items details
+            $lineItems = [];
+            foreach ($lineItemsResponse->data as $item) {
+                $lineItems[] = [
+                    'description' => $item->description,
+                    'quantity' => $item->quantity,
+                    'price' => $item->amount_total / 100, // Convert to dollars if in cents
+                ];
+            }
 
             return response()->json([
                 'status' => $session->status,
+                'customer_name' => $session->customer_details->name ?? null,
                 'customer_email' => $session->customer_email ?? null,
-                'total_tax' => $session->total_details->amount_tax,
-                'payment_method' => $session->payment_method_types[0] ?? null,
-                'billing_address' => $session->billing_address_collection ?? null,
-                'shipping_address' => $session->shipping_address_collection ?? null,
+                'billing_address' => $session->customer_details->address ?? null,
+                'shipping_address' => $session->shipping_details ?? null,
+                'order_details' => [
+                    'line_items' => $lineItems,
+                    'shipping_cost' => $session->total_details->amount_shipping / 100, // Convert to dollars if in cents
+                    'tax' => $session->total_details->amount_tax / 100, // Convert to dollars if in cents
+                    'total_price' => $session->amount_total / 100, // Convert to dollars if in cents
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

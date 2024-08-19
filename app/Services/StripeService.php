@@ -13,7 +13,6 @@ class StripeService
         $this->stripe = new StripeClient(env('STRIPE_SECRET_KEY'));
     }
 
-
     public function createCheckoutSession($lineItems, $returnUrl, $userInfo = null)
     {
         // Initialize session data with automatic tax enabled
@@ -48,37 +47,13 @@ class StripeService
         return $checkoutSession;
     }
 
-
-
-    public function createCustomer($userInfo)
-    {
-        return $this->stripe->customers->create([
-            'email' => $userInfo['email'],
-            'name' => $userInfo['first_name'] . ' ' . $userInfo['last_name'],
-            'phone' => $userInfo['telephone'],
-            'address' => [
-                'line1' => $userInfo['address'],
-                'city' => $userInfo['city'],
-                'state' => $userInfo['state'],
-                'postal_code' => $userInfo['postal_code'],
-                'country' => $userInfo['country'],
-            ],
-            'shipping' => [ // Include shipping address
-                'name' => $userInfo['first_name'] . ' ' . $userInfo['last_name'],
-                'address' => [
-                    'line1' => $userInfo['address'],
-                    'city' => $userInfo['city'],
-                    'state' => $userInfo['state'],
-                    'postal_code' => $userInfo['postal_code'],
-                    'country' => $userInfo['country'],
-                ],
-            ],
-        ]);
-    }
-
-
     public function retrieveCheckoutSession($sessionId)
     {
         return $this->stripe->checkout->sessions->retrieve($sessionId);
+    }
+
+    public function retrieveLineItems($sessionId)
+    {
+        return $this->stripe->checkout->sessions->allLineItems($sessionId, ['limit' => 100]);
     }
 }
