@@ -46,3 +46,4 @@ Route::delete('/products/{id}', [ProductController::class, 'deleteProduct'])
 // Stripe Routes
 Route::post('/stripe/create-checkout-session', [StripeController::class, 'createCheckoutSession']);
 Route::post('/stripe/retrieve-checkout-session', [StripeController::class, 'retrieveCheckoutSession']);
+Route::post('/stripe/order-history', [StripeController::class, 'getOrderHistoryByEmail']);

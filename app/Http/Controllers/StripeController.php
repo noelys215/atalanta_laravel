@@ -18,7 +18,7 @@ class StripeController extends Controller
     {
         $request->validate([
             'line_items' => 'required|array',
-            'user_info' => 'required|array', // Validate that user_info is passed
+            'user_info' => 'nullable|array',
         ]);
 
         $userInfo = $request->input('user_info');
@@ -44,6 +44,7 @@ class StripeController extends Controller
         try {
             $session = $this->stripeService->retrieveCheckoutSession($request->input('session_id'));
 
+            \Log::info($session);
             // Extract line items details including images
             $lineItems = [];
             foreach ($session->line_items->data as $item) {
@@ -62,6 +63,7 @@ class StripeController extends Controller
                 'customer_email' => $session->customer_email ?? null,
                 'billing_address' => $session->customer_details->address ?? null,
                 'shipping_address' => $session->shipping_details ?? null,
+                'order_date' => $session->created, // Add order date to the response
                 'order_details' => [
                     'line_items' => $lineItems,
                     'shipping_cost' => $session->total_details->amount_shipping / 100, // Convert to dollars if in cents
@@ -73,5 +75,45 @@ class StripeController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+
+    public function getOrderHistoryByEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        try {
+            // Use the stripeService to get sessions
+            $sessions = $this->stripeService->retrieveSessionsByEmail($request->input('email'));
+
+            $orders = [];
+            foreach ($sessions as $session) { // Loop through filtered sessions
+                $lineItems = [];
+                foreach ($session->line_items->data as $item) {
+                    $product = $item->price->product;
+                    $lineItems[] = [
+                        'description' => $item->description,
+                        'quantity' => $item->quantity,
+                        'price' => $item->amount_total / 100, // Convert to dollars if in cents
+                        'image' => $product->images[0] ?? null // Assuming there is at least one image
+                    ];
+                }
+
+                $orders[] = [
+                    'id' => $session->id,
+                    'status' => $session->status,
+                    'created' => $session->created,
+                    'total_price' => $session->amount_total / 100,
+                    'line_items' => $lineItems,
+                ];
+            }
+
+            return response()->json($orders);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
 
 }

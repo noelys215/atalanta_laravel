@@ -61,4 +61,22 @@ class StripeService
     {
         return $this->stripe->checkout->sessions->allLineItems($sessionId, ['limit' => 100]);
     }
+
+    public function retrieveSessionsByEmail($email)
+    {
+        $sessions = $this->stripe->checkout->sessions->all([
+            'limit' => 100,
+            'expand' => ['data.line_items'],
+            'customer_details' => ['email' => $email]
+        ]);
+
+        // Filter sessions for paid orders only
+        $paidSessions = array_filter($sessions->data, function ($session) {
+            return $session->payment_status === 'paid';
+        });
+
+        return $paidSessions;
+    }
+
+
 }
