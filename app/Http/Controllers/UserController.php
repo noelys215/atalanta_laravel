@@ -167,6 +167,7 @@ class UserController extends Controller
         }
     }
 
+    // Reset Password
     public function resetPassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -185,7 +186,7 @@ class UserController extends Controller
             return response()->json(['error' => 'Invalid token or email'], 400);
         }
 
-        $user->password = Hash::make($request->password);
+        $user->password = $request->password;
         $user->password_reset_token = null; // Clear the reset token
         $user->save();
 
