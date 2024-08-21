@@ -44,18 +44,38 @@ class StripeService
         // Create the checkout session
         $checkoutSession = $this->stripe->checkout->sessions->create($sessionData);
 
+        // Generate a short order ID and store it in the metadata
+        $shortOrderId = $this->generateShortOrderId($checkoutSession->id);
+        $this->stripe->checkout->sessions->update($checkoutSession->id, [
+            'metadata' => ['short_order_id' => $shortOrderId],
+        ]);
+
         return $checkoutSession;
     }
 
     public function retrieveCheckoutSession($sessionId)
     {
+        // Retrieve the session with expanded line items
         $session = $this->stripe->checkout->sessions->retrieve($sessionId, [
-            'expand' => ['line_items.data.price.product']
+            'expand' => ['line_items']
         ]);
 
-        return $session;
-    }
+        // Ensure 'line_items' exists in the session data
+        if (!isset($session->line_items)) {
+            $session->line_items = new \stdClass(); // Initialize it as an empty object if not present
+        }
 
+        // Now retrieve the product details separately
+        foreach ($session->line_items->data as &$item) {
+            $product = $this->stripe->products->retrieve($item->price->product);
+            $item->product_details = $product; // Attach the product details to the item
+        }
+
+        return [
+            'session' => $session,
+            'short_order_id' => $session->metadata['short_order_id'] ?? null, // Include the short_order_id
+        ];
+    }
 
     public function retrieveLineItems($sessionId)
     {
@@ -78,18 +98,30 @@ class StripeService
         return $paidSessions;
     }
 
-
-
-    public function retrieveSessionByEmailAndOrderId($email, $orderId)
+    // Function to generate a shortened order ID
+    protected function generateShortOrderId($longOrderId)
     {
-        // Retrieve the session using the order ID
-        $session = $this->stripe->checkout->sessions->retrieve($orderId, [
-            'expand' => ['line_items.data.price.product']
+        return substr(hash('sha256', $longOrderId), 0, 8);
+    }
+
+    public function retrieveSessionByEmailAndOrderId($email, $shortOrderId)
+    {
+        // List all sessions and expand customer details
+        $sessions = $this->stripe->checkout->sessions->all([
+            'limit' => 100,
+            'expand' => ['data.line_items'],
         ]);
 
-        // Ensure the session belongs to the provided email
-        if ($session && isset($session->customer_details->email) && $session->customer_details->email === $email) {
-            return $session;
+        // Filter the sessions to find one with the matching short_order_id and email
+        foreach ($sessions->data as $session) {
+            if (
+                isset($session->metadata['short_order_id']) &&
+                $session->metadata['short_order_id'] === $shortOrderId &&
+                isset($session->customer_details->email) &&
+                $session->customer_details->email === $email
+            ) {
+                return $this->retrieveCheckoutSession($session->id);
+            }
         }
 
         return null; // Return null if no matching session is found
