@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use App\Notifications\OrderPaidNotification;
 use Illuminate\Http\Request;
 use App\Services\StripeService;
@@ -125,6 +126,25 @@ class StripeController extends Controller
                         'email' => $order->customer_email,
                         'error_message' => $e->getMessage(),
                     ]);
+                }
+
+                \Log::info($order);
+
+                // Adjust inventory
+                foreach ($lineItems as $item) {
+                    $product = Product::where('name', $item['description'])->first();
+                    if ($product) {
+                        $inventory = $product->inventory;
+                        foreach ($inventory as &$invItem) {
+                            if ($invItem['size'] == $item['size']) {
+                                \Log::info('Adjusting inventory for product: ' . $product->name . ', size: ' . $item['size'] . ', quantity before: ' . $invItem['quantity']);
+                                $invItem['quantity'] -= $item['quantity'];
+                                \Log::info('Quantity after adjustment: ' . $invItem['quantity']);
+                            }
+                        }
+                        $product->inventory = $inventory;
+                        $product->save();
+                    }
                 }
 
                 \Log::info('Order created successfully', ['order_id' => $order->id]);
