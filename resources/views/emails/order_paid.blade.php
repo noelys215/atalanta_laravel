@@ -59,6 +59,17 @@
             text-align: center;
             font-size: 16px;
         }
+
+        .order-summary {
+            margin-top: 20px;
+        }
+
+        .order-summary p {
+            margin: 0;
+            padding: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
     </style>
 </head>
 <body>
@@ -69,7 +80,7 @@
     </div>
     <div class="content">
         <p><strong>Order ID:</strong> {{ $order->id }}</p>
-        <p><strong>Total Price:</strong> ${{ number_format($order->total_price, 2) }}</p>
+        <p><strong>Order Date:</strong> {{ date('l, F j, Y, g:i A', strtotime($order->paid_at)) }}</p>
         <p><strong>Shipping Address:</strong></p>
         <p>
             {{ $order->customer_name }}<br>
@@ -89,6 +100,13 @@
                 <img src="{{ $item['image'] }}" alt="{{ $item['description'] }}">
             </div>
         @endforeach
+        <div class="order-summary">
+            <hr/>
+            <p><strong>Items Price:</strong> <span>${{ number_format(array_sum(array_column($orderItems, 'price')), 2) }}</span></p>
+            <p><strong>Tax:</strong> <span>${{ number_format($order->tax_price, 2) }}</span></p>
+            <p><strong>Shipping:</strong> <span>${{ number_format($order->shipping_price, 2) }}</span></p>
+            <p><strong>Total Price:</strong> <span>${{ number_format($order->total_price, 2) }}</span></p>
+        </div>
         <p class="footer-message">Thank you for shopping with us, {{ $order->customer_name }}!</p>
     </div>
     <div class="footer">
