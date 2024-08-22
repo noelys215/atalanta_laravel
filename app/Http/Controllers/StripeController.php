@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Notifications\OrderPaidNotification;
 use Illuminate\Http\Request;
 use App\Services\StripeService;
+use App\Models\Order;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Auth;
 
 class StripeController extends Controller
 {
@@ -23,16 +27,23 @@ class StripeController extends Controller
 
         $userInfo = $request->input('user_info');
 
-        $checkoutSession = $this->stripeService->createCheckoutSession(
-            $request->input('line_items'),
-            url('http://localhost:5173/return?session_id={CHECKOUT_SESSION_ID}'),
-            $userInfo
-        );
+        try {
+            $checkoutSession = $this->stripeService->createCheckoutSession(
+                $request->input('line_items'),
+                url('http://localhost:5173/return?session_id={CHECKOUT_SESSION_ID}'),
+                $userInfo
+            );
 
-        return response()->json([
-            'sessionId' => $checkoutSession->id,
-            'clientSecret' => $checkoutSession->client_secret
-        ]);
+            return response()->json([
+                'sessionId' => $checkoutSession->id,
+                'clientSecret' => $checkoutSession->client_secret
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to create Stripe checkout session', [
+                'error_message' => $e->getMessage(),
+            ]);
+            return response()->json(['error' => 'Failed to create checkout session'], 500);
+        }
     }
 
     public function retrieveCheckoutSession(Request $request)
@@ -42,11 +53,21 @@ class StripeController extends Controller
         ]);
 
         try {
+            \Log::info('Retrieving Stripe checkout session for session ID: ' . $request->input('session_id'));
+
             $sessionData = $this->stripeService->retrieveCheckoutSession($request->input('session_id'));
             $session = $sessionData['session'];
             $shortOrderId = $sessionData['short_order_id'];
 
-            \Log::info($session);
+            \Log::info('Stripe session retrieved successfully', ['session' => $session]);
+
+            // Check if the order already exists
+            $existingOrder = Order::where('short_order_id', $shortOrderId)->first();
+
+            if ($existingOrder) {
+                \Log::info('Existing order found', ['order_id' => $existingOrder->id]);
+                return $this->formatOrderResponse($existingOrder, $session);
+            }
 
             // Extract line items details including images
             $lineItems = [];
@@ -57,28 +78,98 @@ class StripeController extends Controller
                         'description' => $item->description,
                         'quantity' => $item->quantity,
                         'price' => $item->amount_total / 100, // Convert to dollars if in cents
-                        'image' => $product->images[0] ?? null // Assuming there is at least one image
+                        'image' => $product->images[0] ?? null, // Assuming there is at least one image
+                        'size' => $product->metadata['selectedSize'] ?? null
                     ];
                 }
+            } else {
+                \Log::warning('No line items found in Stripe session', ['session_id' => $request->input('session_id')]);
             }
 
+            // Determine if the user is authenticated
+            $userId = Auth::check() ? Auth::id() : null;
+
+            // Create a new order
+            try {
+                $order = Order::create([
+                    'user_id' => $userId,
+                    'short_order_id' => $shortOrderId,
+                    'order_items' => $lineItems,
+                    'shipping_address' => [
+                        'address' => $session->shipping_details->address->line1,
+                        'city' => $session->shipping_details->address->city,
+                        'state' => $session->shipping_details->address->state,
+                        'postal_code' => $session->shipping_details->address->postal_code,
+                        'country' => $session->shipping_details->address->country,
+                    ],
+                    'payment_method' => 'Stripe',
+                    'items_price' => array_sum(array_column($lineItems, 'price')),
+                    'tax_price' => $session->total_details->amount_tax / 100,
+                    'shipping_price' => $session->total_details->amount_shipping / 100,
+                    'total_price' => $session->amount_total / 100,
+                    'is_paid' => true,
+                    'paid_at' => now(),
+                    'is_shipped' => false,
+                    'customer_name' => $session->customer_details->name ?? null,
+                    'customer_email' => $session->customer_email ?? null,
+                ]);
+
+                // Send email notification
+                try {
+                    Notification::route('mail', $order->customer_email)
+                        ->notify(new OrderPaidNotification($order));
+                    \Log::info('Order paid email sent successfully', ['order_id' => $order->id, 'email' => $order->customer_email]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send order paid email', [
+                        'order_id' => $order->id,
+                        'email' => $order->customer_email,
+                        'error_message' => $e->getMessage(),
+                    ]);
+                }
+
+                \Log::info('Order created successfully', ['order_id' => $order->id]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to create order', [
+                    'session_id' => $request->input('session_id'),
+                    'error_message' => $e->getMessage(),
+                ]);
+                return response()->json(['error' => 'Failed to create order'], 500);
+            }
+
+            return $this->formatOrderResponse($order, $session);
+        } catch (\Exception $e) {
+            \Log::error('Failed to retrieve Stripe checkout session or create order', [
+                'session_id' => $request->input('session_id'),
+                'error_message' => $e->getMessage(),
+            ]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    private function formatOrderResponse($order, $session)
+    {
+        try {
             return response()->json([
                 'status' => $session->status,
                 'customer_name' => $session->customer_details->name ?? null,
                 'customer_email' => $session->customer_email ?? null,
                 'billing_address' => $session->customer_details->address ?? null,
                 'shipping_address' => $session->shipping_details ?? null,
-                'order_date' => $session->created, // Add order date to the response
+                'order_date' => $session->created,
                 'order_details' => [
-                    'line_items' => $lineItems,
+                    'line_items' => $order->order_items,
                     'shipping_cost' => $session->total_details->amount_shipping / 100, // Convert to dollars if in cents
                     'tax' => $session->total_details->amount_tax / 100, // Convert to dollars if in cents
                     'total_price' => $session->amount_total / 100, // Convert to dollars if in cents
                 ],
-                'short_order_id' => $shortOrderId, // Include the short_order_id in the response
+                'short_order_id' => $order->short_order_id, // Include the short_order_id in the response
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Log::error('Failed to format order response', [
+                'order_id' => $order->id,
+                'error_message' => $e->getMessage(),
+            ]);
+            return response()->json(['error' => 'Failed to format order response'], 500);
         }
     }
 
@@ -96,7 +187,9 @@ class StripeController extends Controller
             foreach ($sessions as $session) { // Loop through filtered sessions
                 $lineItems = [];
                 foreach ($session->line_items->data as $item) {
-                    $product = $this->stripeService->retrieveProduct($item->price->product);
+                    // Retrieve product details for each line item
+                    $product = $this->stripeService->retrieveCheckoutSession($session->id)['session']->line_items->data[0]->product_details;
+
                     $lineItems[] = [
                         'description' => $item->description,
                         'quantity' => $item->quantity,
@@ -107,6 +200,7 @@ class StripeController extends Controller
 
                 $orders[] = [
                     'id' => $session->id,
+                    'short_order_id' => $session->metadata['short_order_id'] ?? null,
                     'status' => $session->status,
                     'created' => $session->created,
                     'total_price' => $session->amount_total / 100,
@@ -160,7 +254,7 @@ class StripeController extends Controller
                 'customer_email' => $session['customer_email'] ?? null,
                 'billing_address' => $session['customer_details']['address'] ?? null,
                 'shipping_address' => $session['shipping_details'] ?? null,
-                'order_date' => $session['created'], // Add order date to the response
+                'order_date' => $session['created'],
                 'order_details' => [
                     'line_items' => $lineItems,
                     'shipping_cost' => $session['total_details']['amount_shipping'] / 100, // Convert to dollars if in cents
@@ -173,5 +267,4 @@ class StripeController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
-
 }

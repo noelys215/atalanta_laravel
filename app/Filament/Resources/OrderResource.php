@@ -40,6 +40,9 @@ class OrderResource extends Resource
                         TextInput::make('name')
                             ->required()
                             ->maxLength(255),
+                        TextInput::make('email')
+                            ->required()
+                            ->maxLength(255),
                         TextInput::make('quantity')
                             ->required()
                             ->numeric(),
@@ -171,7 +174,17 @@ class OrderResource extends Resource
                 }
 
                 // Send email to the user
-                Notification::send($order->user, new OrderPaidNotification($order));
+                try {
+                    Notification::route('mail', $order->customer_email)
+                        ->notify(new OrderPaidNotification($order));
+                    \Log::info('Order paid email sent successfully', ['order_id' => $order->id, 'email' => $order->customer_email]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send order paid email', [
+                        'order_id' => $order->id,
+                        'email' => $order->customer_email,
+                        'error_message' => $e->getMessage(),
+                    ]);
+                }
             } else {
                 throw new ModelNotFoundException('User not found for order ID: ' . $order->id);
             }

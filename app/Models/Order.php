@@ -11,6 +11,7 @@ class Order extends Model
 
     protected $fillable = [
         'user_id',
+        'short_order_id',
         'order_items',
         'shipping_address',
         'payment_method',
@@ -23,6 +24,8 @@ class Order extends Model
         'payment_result',
         'is_shipped',
         'shipped_at',
+        'customer_name',
+        'customer_email',
     ];
 
     protected $casts = [

@@ -53,16 +53,29 @@ class StripeService
         return $checkoutSession;
     }
 
-    public function retrieveCheckoutSession($sessionId)
+    public function retrieveCheckoutSession($sessionIdOrShortOrderId)
     {
-        // Retrieve the session with expanded line items
-        $session = $this->stripe->checkout->sessions->retrieve($sessionId, [
-            'expand' => ['line_items']
-        ]);
+        // Attempt to find the session using the session ID first
+        try {
+            $session = $this->stripe->checkout->sessions->retrieve($sessionIdOrShortOrderId, [
+                'expand' => ['line_items']
+            ]);
+        } catch (\Exception $e) {
+            // If retrieval by session ID fails, try retrieving by short order ID
+            $sessions = $this->stripe->checkout->sessions->all([
+                'limit' => 100,
+                'expand' => ['data.line_items'],
+            ]);
 
-        // Ensure 'line_items' exists in the session data
-        if (!isset($session->line_items)) {
-            $session->line_items = new \stdClass(); // Initialize it as an empty object if not present
+            foreach ($sessions->data as $session) {
+                if (isset($session->metadata['short_order_id']) && $session->metadata['short_order_id'] === $sessionIdOrShortOrderId) {
+                    break;
+                }
+            }
+        }
+
+        if (!$session) {
+            throw new \Exception('Session not found');
         }
 
         // Now retrieve the product details separately
@@ -76,6 +89,7 @@ class StripeService
             'short_order_id' => $session->metadata['short_order_id'] ?? null, // Include the short_order_id
         ];
     }
+
 
     public function retrieveLineItems($sessionId)
     {

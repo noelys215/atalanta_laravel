@@ -64,31 +64,32 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>Hello!</h1>
-        <p>Thank you for your payment.</p>
+        <h1>Greetings from Atalanta!</h1>
+        <p>Thank you, {{ $order->customer_name }}, for your payment.</p>
     </div>
     <div class="content">
         <p><strong>Order ID:</strong> {{ $order->id }}</p>
         <p><strong>Total Price:</strong> ${{ number_format($order->total_price, 2) }}</p>
         <p><strong>Shipping Address:</strong></p>
         <p>
-            {{ $order->shipping_address['street'] }}<br>
+            {{ $order->customer_name }}<br>
+            {{ $order->shipping_address['address'] }}<br>
             {{ $order->shipping_address['city'] }},
-            {{ $order->shipping_address['state'] }} {{ $order->shipping_address['postalCode'] }}<br>
+            {{ $order->shipping_address['state'] }} {{ $order->shipping_address['postal_code'] }}<br>
             {{ $order->shipping_address['country'] }}
         </p>
         <hr/>
         <p><strong>Order Items:</strong></p>
         @foreach ($orderItems as $item)
             <div class="order-item">
-                <p><strong>Name:</strong> {{ $item['name'] }}</p>
+                <p><strong>Name:</strong> {{ $item['description'] }}</p>
                 <p><strong>Quantity:</strong> {{ $item['quantity'] }}</p>
+                <p><strong>Size:</strong> {{ $item['size'] }}</p>
                 <p><strong>Price:</strong> ${{ number_format($item['price'], 2) }}</p>
-                <p><strong>Size:</strong> {{ $item['selectedSize'] }}</p>
-                <img src="{{ $item['image'] }}" alt="{{ $item['name'] }}">
+                <img src="{{ $item['image'] }}" alt="{{ $item['description'] }}">
             </div>
         @endforeach
-        <p class="footer-message">Thank you for shopping with us!</p>
+        <p class="footer-message">Thank you for shopping with us, {{ $order->customer_name }}!</p>
     </div>
     <div class="footer">
         <p>Regards, Atalanta A.C.</p>
