@@ -80,11 +80,6 @@ class EditOrder extends EditRecord
     }
 
 
-    protected function afterSave(): void
-    {
-        if ($this->record->is_paid) {
-            OrderResource::handleOrderPaid($this->record);
-        }
-    }
+
 
 }
