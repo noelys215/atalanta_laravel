@@ -156,7 +156,7 @@ class StripeController extends Controller
                 return response()->json(['error' => 'Failed to create order'], 500);
             }
 
-            return $this->formatOrderResponse($order, $session);
+            return $this->formatOrderResponse($order, $session)->header('X-Clear-Cart', 'true');
         } catch (\Exception $e) {
             \Log::error('Failed to retrieve Stripe checkout session or create order', [
                 'session_id' => $request->input('session_id'),
