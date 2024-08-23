@@ -15,4 +15,5 @@ class CreateOrder extends CreateRecord
             OrderResource::handleOrderPaid($this->record);
         }
     }
+
 }

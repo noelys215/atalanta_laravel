@@ -7,7 +7,6 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Notifications\OrderPaidNotification;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\DateTimePicker;
@@ -32,87 +31,117 @@ class OrderResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('user_id')
+
+                TextInput::make('short_order_id')
+                    ->label('Short Order ID')
                     ->required()
-                    ->numeric(),
+                    ->maxLength(255)->columnSpanFull(),
+
+                TextInput::make('customer_name')
+                    ->label('Customer Name')
+                    ->required()
+                    ->maxLength(255),
+
+                TextInput::make('customer_email')
+                    ->label('Customer Email')
+                    ->required()
+                    ->email()
+                    ->maxLength(255),
+
+
                 Repeater::make('order_items')
                     ->schema([
-                        TextInput::make('name')
-                            ->required()
-                            ->maxLength(255),
-                        TextInput::make('email')
+                        TextInput::make('description')
+                            ->label('Product Name')
                             ->required()
                             ->maxLength(255),
                         TextInput::make('quantity')
+                            ->label('Quantity')
                             ->required()
                             ->numeric(),
                         TextInput::make('price')
+                            ->label('Price')
                             ->required()
                             ->numeric(),
                         TextInput::make('image')
+                            ->label('Image URL')
                             ->required()
                             ->url(),
-                        TextInput::make('selectedSize')
+                        TextInput::make('size')
+                            ->label('Size')
                             ->required()
                             ->maxLength(255),
                     ])
-                    ->columnSpan('full'),
-
+                    ->columnSpan('full')
+                    ->label('Order Items'),
 
                 TextInput::make('payment_method')
+                    ->label('Payment Method')
                     ->required()
                     ->maxLength(255),
                 TextInput::make('items_price')
+                    ->label('Items Price')
                     ->required()
                     ->numeric(),
                 TextInput::make('tax_price')
+                    ->label('Tax Price')
                     ->required()
                     ->numeric(),
-
-
                 TextInput::make('shipping_price')
+                    ->label('Shipping Price')
                     ->required()
                     ->numeric(),
                 TextInput::make('total_price')
+                    ->label('Total Price')
                     ->required()
                     ->numeric(),
-                TextInput::make('payment_result'),
-                DateTimePicker::make('shipped_at'),
-                DateTimePicker::make('paid_at'),
+                TextInput::make('payment_result')
+                    ->label('Payment Result'),
 
-                TextInput::make('shipping_address.street')
+                DateTimePicker::make('paid_at')
+                    ->label('Paid At'),
+                DateTimePicker::make('shipped_at')
+                    ->label('Shipped At'),
+
+                TextInput::make('shipping_address.address')
                     ->label('Street')
                     ->required(),
-
                 TextInput::make('shipping_address.city')
                     ->label('City')
                     ->required(),
                 TextInput::make('shipping_address.state')
                     ->label('State')
                     ->required(),
-                TextInput::make('shipping_address.postalCode')
+                TextInput::make('shipping_address.postal_code')
                     ->label('ZIP')
                     ->required(),
                 TextInput::make('shipping_address.country')
-                    ->label('Country')->columnSpan(1),
-
-                Toggle::make('is_paid')->columnSpan(2)
+                    ->label('Country')
                     ->required(),
-                Toggle::make('is_shipped')->columnSpan(2)
+
+                Toggle::make('is_paid')
+                    ->label('Is Paid')
+                    ->required(),
+                Toggle::make('is_shipped')
+                    ->label('Is Shipped')
                     ->required(),
             ]);
     }
+
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
+                TextColumn::make('short_order_id')->label('Short Order ID')->sortable()->searchable(),
                 TextColumn::make('id')->sortable(),
-                TextColumn::make('user.name')->label('User')->sortable()->searchable(),
+                TextColumn::make('customer_name')->label('User')->sortable()->searchable(),
+                TextColumn::make('customer_email')->label('Email')->sortable()->searchable(),
                 TextColumn::make('items_price')->sortable()->searchable(),
                 TextColumn::make('tax_price')->sortable()->searchable(),
                 TextColumn::make('shipping_price')->sortable()->searchable(),
                 TextColumn::make('total_price')->sortable()->searchable(),
+                TextColumn::make('payment_result')->label('Payment Result')->sortable()->searchable(),
                 ToggleColumn::make('is_paid')->sortable()->searchable(),
                 TextColumn::make('paid_at')->dateTime()->sortable(),
                 ToggleColumn::make('is_shipped')->sortable()->searchable(),

@@ -10,7 +10,7 @@ return [
 
     'allowed_headers' => ['*'],
 
-    'exposed_headers' => ['X-Clear-Cart'], // Expose the custom header
+    'exposed_headers' => ['X-Clear-Cart'],
 
     'max_age' => 0,
 

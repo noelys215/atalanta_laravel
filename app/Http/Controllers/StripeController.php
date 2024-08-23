@@ -113,6 +113,7 @@ class StripeController extends Controller
                     'is_shipped' => false,
                     'customer_name' => $session->customer_details->name ?? null,
                     'customer_email' => $session->customer_email ?? null,
+                    'payment_result' => json_encode($session->payment_intent) ? 'Complete' : 'Incomplete',
                 ]);
 
                 // Send email notification
