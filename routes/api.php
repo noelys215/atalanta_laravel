@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\HeroCardController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\SeasonalCardController;
 use App\Http\Controllers\StripeController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
@@ -48,3 +50,10 @@ Route::post('/stripe/create-checkout-session', [StripeController::class, 'create
 Route::post('/stripe/retrieve-checkout-session', [StripeController::class, 'retrieveCheckoutSession']);
 Route::post('/stripe/order-history', [StripeController::class, 'getOrderHistoryByEmail']);
 Route::post('/stripe/order-by-email-and-id', [StripeController::class, 'getOrderByEmailAndOrderId']);
+
+// Hero/Seasonal Card Routes
+Route::get('/seasonal-cards', [SeasonalCardController::class, 'index']);
+Route::get('/seasonal-cards/{slug}', [SeasonalCardController::class, 'show']);
+
+Route::get('/hero-cards', [HeroCardController::class, 'index']);
+Route::get('/hero-cards/{slug}', [HeroCardController::class, 'show']);
