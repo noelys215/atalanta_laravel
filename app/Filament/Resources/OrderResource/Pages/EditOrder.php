@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\OrderResource\Pages;
 
 use App\Filament\Resources\OrderResource;
-use App\Models\Product;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\EditRecord;
 use App\Notifications\OrderPaidNotification;
@@ -57,7 +56,6 @@ class EditOrder extends EditRecord
         try {
             Notification::route('mail', $order->customer_email)
                 ->notify(new OrderPaidNotification($order));
-            \Log::info('Order paid email resent successfully', ['order_id' => $order->id, 'email' => $order->customer_email]);
 
             FilamentNotification::make()
                 ->title('Success')
@@ -65,12 +63,6 @@ class EditOrder extends EditRecord
                 ->success()
                 ->send();
         } catch (\Exception $e) {
-            \Log::error('Failed to resend order paid email', [
-                'order_id' => $order->id,
-                'email' => $order->customer_email,
-                'error_message' => $e->getMessage(),
-            ]);
-
             FilamentNotification::make()
                 ->title('Error')
                 ->body('Failed to resend order email.')
@@ -78,8 +70,6 @@ class EditOrder extends EditRecord
                 ->send();
         }
     }
-
-
 
 
 }

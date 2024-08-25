@@ -44,6 +44,4 @@ class OrderPaidNotification extends Notification
             throw $e;
         }
     }
-
-
 }

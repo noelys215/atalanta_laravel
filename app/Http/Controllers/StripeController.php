@@ -29,9 +29,11 @@ class StripeController extends Controller
         $userInfo = $request->input('user_info');
 
         try {
+            $clientUrl = env('APP_CLIENT_URL', 'http://localhost:5173');
+
             $checkoutSession = $this->stripeService->createCheckoutSession(
                 $request->input('line_items'),
-                url('http://localhost:5173/return?session_id={CHECKOUT_SESSION_ID}'),
+                url("{$clientUrl}/return?session_id={CHECKOUT_SESSION_ID}"),
                 $userInfo
             );
 
@@ -54,19 +56,16 @@ class StripeController extends Controller
         ]);
 
         try {
-            \Log::info('Retrieving Stripe checkout session for session ID: ' . $request->input('session_id'));
 
             $sessionData = $this->stripeService->retrieveCheckoutSession($request->input('session_id'));
             $session = $sessionData['session'];
             $shortOrderId = $sessionData['short_order_id'];
 
-            \Log::info('Stripe session retrieved successfully', ['session' => $session]);
 
             // Check if the order already exists
             $existingOrder = Order::where('short_order_id', $shortOrderId)->first();
 
             if ($existingOrder) {
-                \Log::info('Existing order found', ['order_id' => $existingOrder->id]);
                 return $this->formatOrderResponse($existingOrder, $session);
             }
 
