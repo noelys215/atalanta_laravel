@@ -79,7 +79,7 @@
         <p>Thank you, {{ $order->customer_name }}, for your payment.</p>
     </div>
     <div class="content">
-        <p><strong>Order ID:</strong> {{ $order->id }}</p>
+        <p><strong>Order ID:</strong> {{ $order->short_order_id }}</p>
         <p><strong>Order Date:</strong> {{ date('l, F j, Y, g:i A', strtotime($order->paid_at)) }}</p>
         <p><strong>Shipping Address:</strong></p>
         <p>
