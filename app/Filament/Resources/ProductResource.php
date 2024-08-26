@@ -38,12 +38,24 @@ class ProductResource extends Resource
                 TextInput::make('price')
                     ->required()
                     ->numeric(),
-                TextInput::make('category')
-                    ->required()
-                    ->maxLength(255),
-                TextInput::make('department')
-                    ->required()
-                    ->maxLength(255),
+                Select::make('category')
+                    ->options([
+                        'tanks' => 'tanks',
+                        'shirts' => 'shirts',
+                        'jackets' => 'jackets',
+                        'pants' => 'pants',
+                        'shorts' => 'shorts',
+                        'footwear' => 'footwear',
+                        'all' => 'all',
+                    ])
+                    ->required(),
+                Select::make('department')
+                    ->options([
+                        'accessories' => 'accessories',
+                        'man' => 'man',
+                        'woman' => 'woman',
+                    ])
+                    ->required(),
                 TextInput::make('brand')
                     ->required()
                     ->maxLength(255),
@@ -62,6 +74,21 @@ class ProductResource extends Resource
                                 'XL' => 'XL',
                                 'XXL' => 'XXL',
                                 'OS' => 'OS',
+                                '6' => '6',
+                                '6.5' => '6.5',
+                                '7' => '7',
+                                '7.5' => '7.5',
+                                '8' => '8',
+                                '8.5' => '8.5',
+                                '9' => '9',
+                                '9.5' => '9.5',
+                                '10' => '10',
+                                '10.5' => '10.5',
+                                '11' => '11',
+                                '11.5' => '11.5',
+                                '12' => '12',
+                                '12.5' => '12.5',
+                                '13' => '13',
                             ])
                             ->required(),
                         TextInput::make('quantity')
@@ -155,3 +182,4 @@ class ProductResource extends Resource
         return $data;
     }
 }
+

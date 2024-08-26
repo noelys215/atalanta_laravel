@@ -92,7 +92,7 @@ class UserController extends Controller
         $user->first_name = $request->firstName;
         $user->last_name = $request->lastName;
         $user->email = $request->email;
-        $user->password = $request->password; // Do not hash here, mutator will handle it
+        $user->password = $request->password;
         $user->telephone = $request->telephone;
         $user->country = $request->country;
         $user->address = $request->address;
@@ -134,9 +134,10 @@ class UserController extends Controller
 
             $user->notify(new WelcomeEmail());
 
-            return redirect()->route('register-form')->with('success', 'Email verified successfully. Welcome!');
+            // Redirect to frontend /verified route
+            return redirect(env('APP_CLIENT_URL', 'http://localhost:5173') . '/verified')->with('success', 'Email verified successfully. Welcome!');
         } else {
-            return redirect()->route('register-form')->with('error', 'Invalid token. Email verification failed.');
+            return redirect(env('APP_CLIENT_URL', 'http://localhost:5173') . '/verified')->with('error', 'Invalid token. Email verification failed.');
         }
     }
 
@@ -214,9 +215,6 @@ class UserController extends Controller
         if ($user) {
             $user->first_name = $request->firstName ?? $user->first_name;
             $user->last_name = $request->lastName ?? $user->last_name;
-            if ($request->password) {
-                $user->password = Hash::make($request->password);
-            }
             $user->email = $request->email ?? $user->email;
             $user->telephone = $request->telephone ?? $user->telephone;
             $user->country = $request->country ?? $user->country;
