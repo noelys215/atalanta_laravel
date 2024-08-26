@@ -51,7 +51,6 @@ class OrderController extends Controller
     public function getOrderById($id)
     {
         $order = Order::with('user:id,first_name,last_name,email')->find($id);
-        \Log::info($order);
 
         if ($order) {
             return response()->json($order);
@@ -76,23 +75,6 @@ class OrderController extends Controller
             ]);
 
             $order->save();
-
-            // Adjust inventory
-//            foreach (json_decode($order->order_items, true) as $item) {
-//                $product = Product::where('name', $item['name'])->first();
-//                if ($product) {
-//                    $inventory = $product->inventory;
-//                    foreach ($inventory as &$invItem) {
-//                        if ($invItem['size'] == $item['selectedSize']) {
-//                            Log::info('Adjusting inventory for product: ' . $product->name . ', size: ' . $item['selectedSize'] . ', quantity before: ' . $invItem['quantity']);
-//                            $invItem['quantity'] -= $item['quantity'];
-//                            Log::info('Quantity after adjustment: ' . $invItem['quantity']);
-//                        }
-//                    }
-//                    $product->inventory = $inventory;
-//                    $product->save();
-//                }
-//            }
 
             return response()->json($order);
         } else {
