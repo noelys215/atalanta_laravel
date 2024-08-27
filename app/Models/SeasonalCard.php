@@ -8,6 +8,9 @@ use Illuminate\Support\Str;
 
 class SeasonalCard extends Model
 {
+
+    use HasFactory;
+
     protected $fillable = [
         'title',
         'slug',
