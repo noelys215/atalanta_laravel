@@ -75,6 +75,48 @@ jobs:
         run: |
           docker buildx build \
             --platform linux/amd64 \
+            --build-arg APP_CLIENT_URL=${{ secrets.APP_CLIENT_URL }} \
+            --build-arg APP_ENV=${{ secrets.APP_ENV }} \
+            --build-arg APP_KEY=${{ secrets.APP_KEY }} \
+            --build-arg APP_NAME=${{ secrets.APP_NAME }} \
+            --build-arg AUTH_GUARD=${{ secrets.AUTH_GUARD }} \
+            --build-arg AUTH_MODEL=${{ secrets.AUTH_MODEL }} \
+            --build-arg AUTH_PASSWORD_BROKER=${{ secrets.AUTH_PASSWORD_BROKER }} \
+            --build-arg AUTH_PASSWORD_RESET_TOKEN_TABLE=${{ secrets.AUTH_PASSWORD_RESET_TOKEN_TABLE }} \
+            --build-arg AUTH_PASSWORD_TIMEOUT=${{ secrets.AUTH_PASSWORD_TIMEOUT }} \
+            --build-arg AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            --build-arg AWS_REGION=${{ secrets.AWS_REGION }} \
+            --build-arg AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            --build-arg BCRYPT_ROUNDS=${{ secrets.BCRYPT_ROUNDS }} \
+            --build-arg BROADCAST_CONNECTION=${{ secrets.BROADCAST_CONNECTION }} \
+            --build-arg CACHE_STORE=${{ secrets.CACHE_STORE }} \
+            --build-arg DB_CONNECTION=${{ secrets.DB_CONNECTION }} \
+            --build-arg DB_DATABASE=${{ secrets.DB_DATABASE }} \
+            --build-arg DB_HOST=${{ secrets.DB_HOST }} \
+            --build-arg DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            --build-arg DB_PORT=${{ secrets.DB_PORT }} \
+            --build-arg DB_USERNAME=${{ secrets.DB_USERNAME }} \
+            --build-arg FILESYSTEM_DISK=${{ secrets.FILESYSTEM_DISK }} \
+            --build-arg MAIL_ENCRYPTION=${{ secrets.MAIL_ENCRYPTION }} \
+            --build-arg MAIL_HOST=${{ secrets.MAIL_HOST }} \
+            --build-arg MAIL_MAILER=${{ secrets.MAIL_MAILER }} \
+            --build-arg MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }} \
+            --build-arg MAIL_PORT=${{ secrets.MAIL_PORT }} \
+            --build-arg MAIL_USERNAME=${{ secrets.MAIL_USERNAME }} \
+            --build-arg MEMCACHED_HOST=${{ secrets.MEMCACHED_HOST }} \
+            --build-arg QUEUE_CONNECTION=${{ secrets.QUEUE_CONNECTION }} \
+            --build-arg REDIS_CLIENT=${{ secrets.REDIS_CLIENT }} \
+            --build-arg REDIS_HOST=${{ secrets.REDIS_HOST }} \
+            --build-arg REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }} \
+            --build-arg REDIS_PORT=${{ secrets.REDIS_PORT }} \
+            --build-arg SANCTUM_CSRF_COOKIE=${{ secrets.SANCTUM_CSRF_COOKIE }} \
+            --build-arg SANCTUM_STATEFUL_DOMAINS=${{ secrets.SANCTUM_STATEFUL_DOMAINS }} \
+            --build-arg SESSION_DOMAIN=${{ secrets.SESSION_DOMAIN }} \
+            --build-arg SESSION_DRIVER=${{ secrets.SESSION_DRIVER }} \
+            --build-arg SESSION_ENCRYPT=${{ secrets.SESSION_ENCRYPT }} \
+            --build-arg SESSION_LIFETIME=${{ secrets.SESSION_LIFETIME }} \
+            --build-arg SESSION_PATH=${{ secrets.SESSION_PATH }} \
+            --build-arg STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }} \
             --tag ${{ secrets.ECR_REPOSITORY_URI }}:${{ github.sha }} \
             --tag ${{ secrets.ECR_REPOSITORY_URI }}:latest \
             --push .
