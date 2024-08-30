@@ -3,12 +3,12 @@ name: Deploy to AWS ECR and App Runner
 on:
   push:
     branches:
-      - master
+      - main
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_REGION: ${{ secrets.AWS_REGION }}
 
 jobs:
   deploy:
@@ -25,7 +25,10 @@ jobs:
       - name: Log in to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2.0.1
-        # No `with` block is needed here
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -34,6 +37,10 @@ jobs:
           images: ${{ secrets.ECR_REPOSITORY_URI }}
 
       - name: Build and push Docker image to ECR
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
           docker buildx build \
             --platform linux/amd64 \
@@ -82,7 +89,7 @@ jobs:
 
       - name: Trigger deployment in AWS App Runner
         run: |
-          aws apprunner start-deployment --service-name your-app-runner-service-name
+          aws apprunner start-deployment --service-arn arn:aws:apprunner:<AWS_REGION>:<ACCOUNT_ID>:service/<SERVICE_NAME>/<SERVICE_ID>
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
