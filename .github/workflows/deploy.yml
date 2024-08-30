@@ -3,7 +3,7 @@ name: Deploy to AWS ECR and App Runner
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   deploy:
@@ -17,14 +17,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Print AWS Region (Debugging Step)
-        run: echo "AWS Region: ${{ secrets.AWS_REGION }}"
-
       - name: Log in to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          region: ${{ secrets.AWS_REGION }}  # Explicitly specify the region
+          region: ${{ secrets.AWS_REGION }}
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -33,50 +30,6 @@ jobs:
           images: ${{ secrets.ECR_REPOSITORY_URI }}
 
       - name: Build and push Docker image to ECR
-        env:
-          APP_CLIENT_URL: ${{ secrets.APP_CLIENT_URL }}
-          APP_ENV: ${{ secrets.APP_ENV }}
-          APP_KEY: ${{ secrets.APP_KEY }}
-          APP_NAME: ${{ secrets.APP_NAME }}
-          AUTH_GUARD: ${{ secrets.AUTH_GUARD }}
-          AUTH_MODEL: ${{ secrets.AUTH_MODEL }}
-          AUTH_PASSWORD_BROKER: ${{ secrets.AUTH_PASSWORD_BROKER }}
-          AUTH_PASSWORD_RESET_TOKEN_TABLE: ${{ secrets.AUTH_PASSWORD_RESET_TOKEN_TABLE }}
-          AUTH_PASSWORD_TIMEOUT: ${{ secrets.AUTH_PASSWORD_TIMEOUT }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          BCRYPT_ROUNDS: ${{ secrets.BCRYPT_ROUNDS }}
-          BROADCAST_CONNECTION: ${{ secrets.BROADCAST_CONNECTION }}
-          CACHE_STORE: ${{ secrets.CACHE_STORE }}
-          DB_CONNECTION: ${{ secrets.DB_CONNECTION }}
-          DB_DATABASE: ${{ secrets.DB_DATABASE }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          ECR_REPOSITORY_URI: ${{ secrets.ECR_REPOSITORY_URI }}
-          FILESYSTEM_DISK: ${{ secrets.FILESYSTEM_DISK }}
-          MAIL_ENCRYPTION: ${{ secrets.MAIL_ENCRYPTION }}
-          MAIL_HOST: ${{ secrets.MAIL_HOST }}
-          MAIL_MAILER: ${{ secrets.MAIL_MAILER }}
-          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-          MAIL_PORT: ${{ secrets.MAIL_PORT }}
-          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
-          MEMCACHED_HOST: ${{ secrets.MEMCACHED_HOST }}
-          QUEUE_CONNECTION: ${{ secrets.QUEUE_CONNECTION }}
-          REDIS_CLIENT: ${{ secrets.REDIS_CLIENT }}
-          REDIS_HOST: ${{ secrets.REDIS_HOST }}
-          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
-          REDIS_PORT: ${{ secrets.REDIS_PORT }}
-          SANCTUM_CSRF_COOKIE: ${{ secrets.SANCTUM_CSRF_COOKIE }}
-          SANCTUM_STATEFUL_DOMAINS: ${{ secrets.SANCTUM_STATEFUL_DOMAINS }}
-          SESSION_DOMAIN: ${{ secrets.SESSION_DOMAIN }}
-          SESSION_DRIVER: ${{ secrets.SESSION_DRIVER }}
-          SESSION_ENCRYPT: ${{ secrets.SESSION_ENCRYPT }}
-          SESSION_LIFETIME: ${{ secrets.SESSION_LIFETIME }}
-          SESSION_PATH: ${{ secrets.SESSION_PATH }}
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
         run: |
           docker buildx build \
             --platform linux/amd64 \
@@ -125,6 +78,50 @@ jobs:
             --tag ${{ secrets.ECR_REPOSITORY_URI }}:${{ github.sha }} \
             --tag ${{ secrets.ECR_REPOSITORY_URI }}:latest \
             --push .
+        env:
+          APP_CLIENT_URL: ${{ secrets.APP_CLIENT_URL }}
+          APP_ENV: ${{ secrets.APP_ENV }}
+          APP_KEY: ${{ secrets.APP_KEY }}
+          APP_NAME: ${{ secrets.APP_NAME }}
+          AUTH_GUARD: ${{ secrets.AUTH_GUARD }}
+          AUTH_MODEL: ${{ secrets.AUTH_MODEL }}
+          AUTH_PASSWORD_BROKER: ${{ secrets.AUTH_PASSWORD_BROKER }}
+          AUTH_PASSWORD_RESET_TOKEN_TABLE: ${{ secrets.AUTH_PASSWORD_RESET_TOKEN_TABLE }}
+          AUTH_PASSWORD_TIMEOUT: ${{ secrets.AUTH_PASSWORD_TIMEOUT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          BCRYPT_ROUNDS: ${{ secrets.BCRYPT_ROUNDS }}
+          BROADCAST_CONNECTION: ${{ secrets.BROADCAST_CONNECTION }}
+          CACHE_STORE: ${{ secrets.CACHE_STORE }}
+          DB_CONNECTION: ${{ secrets.DB_CONNECTION }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          ECR_REPOSITORY_URI: ${{ secrets.ECR_REPOSITORY_URI }}
+          FILESYSTEM_DISK: ${{ secrets.FILESYSTEM_DISK }}
+          MAIL_ENCRYPTION: ${{ secrets.MAIL_ENCRYPTION }}
+          MAIL_HOST: ${{ secrets.MAIL_HOST }}
+          MAIL_MAILER: ${{ secrets.MAIL_MAILER }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MEMCACHED_HOST: ${{ secrets.MEMCACHED_HOST }}
+          QUEUE_CONNECTION: ${{ secrets.QUEUE_CONNECTION }}
+          REDIS_CLIENT: ${{ secrets.REDIS_CLIENT }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
+          SANCTUM_CSRF_COOKIE: ${{ secrets.SANCTUM_CSRF_COOKIE }}
+          SANCTUM_STATEFUL_DOMAINS: ${{ secrets.SANCTUM_STATEFUL_DOMAINS }}
+          SESSION_DOMAIN: ${{ secrets.SESSION_DOMAIN }}
+          SESSION_DRIVER: ${{ secrets.SESSION_DRIVER }}
+          SESSION_ENCRYPT: ${{ secrets.SESSION_ENCRYPT }}
+          SESSION_LIFETIME: ${{ secrets.SESSION_LIFETIME }}
+          SESSION_PATH: ${{ secrets.SESSION_PATH }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
 
       - name: Trigger deployment in AWS App Runner
         run: |
