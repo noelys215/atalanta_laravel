@@ -28,7 +28,7 @@ jobs:
           images: ${{ secrets.ECR_REPOSITORY_URI }}
 
       - name: Build and push Docker image to ECR
-        env: # Pass secrets as environment variables
+        env:  # Pass secrets as environment variables
           APP_CLIENT_URL: ${{ secrets.APP_CLIENT_URL }}
           APP_ENV: ${{ secrets.APP_ENV }}
           APP_KEY: ${{ secrets.APP_KEY }}
@@ -80,10 +80,9 @@ jobs:
             --push .
 
       - name: Trigger deployment in AWS App Runner
-        uses: aws-actions/aws-cli-action@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
         run: |
           aws apprunner start-deployment --service-name your-app-runner-service-name
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
