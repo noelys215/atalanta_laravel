@@ -28,7 +28,7 @@ jobs:
           images: ${{ secrets.ECR_REPOSITORY_URI }}
 
       - name: Build and push Docker image to ECR
-        env:  # Pass secrets as environment variables
+        env:
           APP_CLIENT_URL: ${{ secrets.APP_CLIENT_URL }}
           APP_ENV: ${{ secrets.APP_ENV }}
           APP_KEY: ${{ secrets.APP_KEY }}
