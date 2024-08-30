@@ -22,6 +22,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
         with:
           mask-password: 'false'
+          region: us-east-1
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
