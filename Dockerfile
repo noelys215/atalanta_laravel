@@ -34,6 +34,9 @@ COPY . /var/www
 # Copy existing application directory permissions
 COPY --chown=www-data:www-data . /var/www
 
+# Ensure php-fpm is listening on the correct port
+RUN echo "listen = 9000" >> /usr/local/etc/php-fpm.d/www.conf
+
 # Set environment variables in the Docker container
 ENV APP_NAME=${APP_NAME}
 ENV APP_ENV=${APP_ENV}
@@ -75,9 +78,13 @@ ENV MAIL_USERNAME=${MAIL_USERNAME}
 ENV MAIL_PASSWORD=${MAIL_PASSWORD}
 ENV MAIL_ENCRYPTION=${MAIL_ENCRYPTION}
 
-# Change current user to www
+# Change current user to www-data
 USER www-data
 
-# Expose port 9000 and start php-fpm server
+# Ensure proper file permissions
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache && \
+    chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+
+# Expose port 9000 and start php-fpm server in non-daemon mode
 EXPOSE 9000
-CMD ["php-fpm", "--nodaemonize", "--fpm-config", "/usr/local/etc/php-fpm.conf", "-R"]
+CMD ["php-fpm", "--nodaemonize"]
