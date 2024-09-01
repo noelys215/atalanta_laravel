@@ -1,8 +1,9 @@
-# use PHP 8.2
+# Use PHP 8.2 as the base image
 FROM php:8.2-fpm
 
-# Install common php extension dependencies
+# Install necessary dependencies
 RUN apt-get update && apt-get install -y \
+    nginx \
     libfreetype-dev \
     libjpeg62-turbo-dev \
     libpng-dev \
@@ -17,21 +18,24 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install gd zip intl mysqli pdo pdo_mysql
 
 # Set the working directory
-COPY . /var/www/app
 WORKDIR /var/www/app
 
+# Copy the application code
+COPY . /var/www/app
+
+# Set the correct permissions
 RUN chown -R www-data:www-data /var/www/app \
     && chmod -R 775 /var/www/app/storage
 
-# install composer
+# Install Composer and dependencies
 COPY --from=composer:2.6.5 /usr/bin/composer /usr/local/bin/composer
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# copy composer.json to workdir & install dependencies
-COPY composer.json ./
-RUN composer install
+# Copy the Nginx configuration file
+COPY ./nginx/default.conf /etc/nginx/conf.d/default.conf
 
-# Set the default command to run php-fpm
-CMD ["sh", "-c", "service nginx start && php-fpm"]
-
-# Expose the port that the application runs on
+# Expose the port the application runs on
 EXPOSE 9000
+
+# Start Nginx and PHP-FPM
+CMD ["sh", "-c", "service nginx start && php-fpm"]
