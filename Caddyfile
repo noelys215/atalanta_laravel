@@ -1,0 +1,12 @@
+{
+    # Global options block, common to all sites
+    email your-email@example.com
+}
+
+:80 {
+    root * /var/www/app/public
+    encode gzip
+
+    php_fastcgi php:9000
+    file_server
+}
