@@ -1,9 +1,8 @@
-# Use PHP 8.2 as the base image
-FROM php:8.2-fpm
+# Use FrankenPHP as the base image
+FROM dunglas/frankenphp:latest
 
-# Install necessary dependencies
+# Install common PHP extensions
 RUN apt-get update && apt-get install -y \
-    nginx \
     libfreetype-dev \
     libjpeg62-turbo-dev \
     libpng-dev \
@@ -27,15 +26,12 @@ COPY . /var/www/app
 RUN chown -R www-data:www-data /var/www/app \
     && chmod -R 775 /var/www/app/storage
 
-# Install Composer and dependencies
+# Install Composer dependencies
 COPY --from=composer:2.6.5 /usr/bin/composer /usr/local/bin/composer
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Copy the Nginx configuration file
-COPY ./nginx/default.conf /etc/nginx/conf.d/default.conf
-
-# Expose the port the application runs on
+# Expose port 9000 or 80 (whichever is configured in FrankenPHP)
 EXPOSE 9000
 
-# Start Nginx and PHP-FPM
-CMD ["sh", "-c", "service nginx start && php-fpm"]
+# Start FrankenPHP directly
+CMD ["frankenphp", "--port", "9000", "--workers", "4", "--root", "/var/www/app/public"]

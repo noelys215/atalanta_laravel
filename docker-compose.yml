@@ -5,21 +5,6 @@ networks:
         driver: bridge
 
 services:
-    nginx:
-        image: nginx:alpine
-        container_name: nginx
-        restart: unless-stopped
-        tty: true
-        ports:
-            - "9000:9000"
-        volumes:
-            - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-            - .:/var/www/app:delegated
-        depends_on:
-            - php
-        networks:
-            - laravel
-
     php:
         build:
             context: .
@@ -27,8 +12,8 @@ services:
         container_name: php
         restart: unless-stopped
         tty: true
-        expose:
-            - "9000"
+        ports:
+            - "9000:9000"  # Expose port 9000 to the outside world
         volumes:
             - .:/var/www/app:delegated
         networks:
