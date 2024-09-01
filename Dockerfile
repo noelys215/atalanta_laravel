@@ -31,7 +31,7 @@ COPY composer.json ./
 RUN composer install
 
 # Set the default command to run php-fpm
-CMD ["php-fpm"]
+CMD ["sh", "-c", "service nginx start && php-fpm"]
 
 # Expose the port that the application runs on
-EXPOSE 9000
+EXPOSE 80
