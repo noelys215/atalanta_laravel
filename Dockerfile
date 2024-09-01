@@ -30,8 +30,8 @@ RUN chown -R www-data:www-data /var/www/app \
 COPY --from=composer:2.6.5 /usr/bin/composer /usr/local/bin/composer
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Expose port 9000 or 80 (whichever is configured in FrankenPHP)
-EXPOSE 9000
+# Expose the port that FrankenPHP listens on (default is 80)
+EXPOSE 80
 
-# Start FrankenPHP directly
-CMD ["frankenphp", "--port", "9000", "--workers", "4", "--root", "/var/www/app/public"]
+# Start FrankenPHP without specifying the port (it defaults to 80)
+CMD ["frankenphp"]

@@ -13,7 +13,7 @@ services:
         restart: unless-stopped
         tty: true
         ports:
-            - "9000:9000"  # Expose port 9000 to the outside world
+            - "9000:80"
         volumes:
             - .:/var/www/app:delegated
         networks:
