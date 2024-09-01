@@ -1,55 +1,34 @@
-# Use an official PHP runtime as a parent image
+# use PHP 8.2
 FROM php:8.2-fpm
 
-# Install dependencies
+# Install common php extension dependencies
 RUN apt-get update && apt-get install -y \
-    nginx \
-    build-essential \
-    libpng-dev \
+    libfreetype-dev \
     libjpeg62-turbo-dev \
-    libfreetype6-dev \
-    locales \
-    zip \
-    jpegoptim optipng pngquant gifsicle \
-    vim \
+    libpng-dev \
+    zlib1g-dev \
+    libzip-dev \
     unzip \
-    git \
-    curl \
+    libicu-dev \
     libonig-dev \
     libxml2-dev \
-    libzip-dev \
     default-mysql-client \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd intl zip
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd zip intl mysqli pdo pdo_mysql
 
-# Install Composer
-RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
-    && php composer-setup.php \
-    && php -r "unlink('composer-setup.php');" \
-    && mv composer.phar /usr/local/bin/composer
+# Set the working directory
+COPY . /var/www/app
+WORKDIR /var/www/app
 
-# Clean up apt cache to reduce the image size
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN chown -R www-data:www-data /var/www/app \
+    && chmod -R 775 /var/www/app/storage
 
-# Set working directory
-WORKDIR /var/www
+# install composer
+COPY --from=composer:2.6.5 /usr/bin/composer /usr/local/bin/composer
 
-# Copy existing application directory contents
-COPY . /var/www
+# copy composer.json to workdir & install dependencies
+COPY composer.json ./
+RUN composer install
 
-# Copy existing application directory permissions
-COPY --chown=www-data:www-data . /var/www
-
-# Copy the Nginx configuration file
-COPY nginx.conf /etc/nginx/nginx.conf
-
-# Ensure Nginx directories exist and have correct permissions
-RUN mkdir -p /var/lib/nginx && \
-    mkdir -p /var/lib/nginx/body && \
-    chown -R www-data:www-data /var/lib/nginx && \
-    chmod -R 755 /var/lib/nginx
-
-# Expose port 8080 to the outside world
-EXPOSE 8080
-
-# Start Nginx and PHP-FPM
-CMD service nginx start && php-fpm
+# Set the default command to run php-fpm
+CMD ["php-fpm"]
