@@ -34,4 +34,4 @@ RUN composer install
 CMD ["sh", "-c", "service nginx start && php-fpm"]
 
 # Expose the port that the application runs on
-EXPOSE 80
+EXPOSE 9000
