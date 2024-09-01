@@ -81,7 +81,7 @@ jobs:
 
       - name: Trigger deployment in AWS App Runner
         run: |
-          aws apprunner start-deployment --service-arn arn:aws:apprunner:us-east-1:533267071464:service/atalanta-laravel-service/4e09630db7334af7824ead639ab5cef6
+          aws apprunner start-deployment --service-arn arn:aws:apprunner:us-east-1:533267071464:service/atalanta-backend-service/b8badf12aac848c392ea1dcd0f10f96d
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
