@@ -11,6 +11,8 @@
         "laravel/framework": "^11.9",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
+        "laravel/vapor-cli": "^1.65",
+        "laravel/vapor-core": "^2.37",
         "league/flysystem-aws-s3-v3": "~3.0",
         "livewire/livewire": "^3.5",
         "stripe/stripe-php": "^15.7"
