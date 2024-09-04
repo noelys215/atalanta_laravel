@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 
 Route::get('/', function () {
-    return redirect('/register');
+    return redirect('/admin');
 });
 
 Route::get('/register', function () {
