@@ -51,7 +51,7 @@ Route::post('/stripe/retrieve-checkout-session', [StripeController::class, 'retr
 Route::post('/stripe/order-history', [StripeController::class, 'getOrderHistoryByEmail']);
 Route::post('/stripe/order-by-email-and-id', [StripeController::class, 'getOrderByEmailAndOrderId']);
 
-// Hero/Seasonal Card Routes
+// Hero and Seasonal Card Routes
 Route::get('/seasonal-cards', [SeasonalCardController::class, 'index']);
 Route::get('/seasonal-cards/{slug}', [SeasonalCardController::class, 'show']);
 
