@@ -120,10 +120,9 @@ class UserController extends Controller
     }
 
 
-    // Verify Email and Send Welcome Email
+// Verify Email and Send Welcome Email
     public function verifyEmail($token)
     {
-
         $user = User::where('email_verification_token', $token)->first();
 
         if ($user) {
@@ -133,10 +132,12 @@ class UserController extends Controller
 
             $user->notify(new WelcomeEmail());
 
-            // Redirect to frontend /verified route
-            return redirect(env('APP_CLIENT_URL', 'https://xx82fv3rgu.us-east-1.awsapprunner.com') . '/verified')->with('success', 'Email verified successfully. Welcome!');
+            // Make sure this points to your App Runner URL
+            return redirect(env('APP_CLIENT_URL', 'https://xx82fv3rgu.us-east-1.awsapprunner.com') . '/verified')
+                ->with('success', 'Email verified successfully. Welcome!');
         } else {
-            return redirect(env('APP_CLIENT_URL', 'https://xx82fv3rgu.us-east-1.awsapprunner.com') . '/verified')->with('error', 'Invalid token. Email verification failed.');
+            return redirect(env('APP_CLIENT_URL', 'https://xx82fv3rgu.us-east-1.awsapprunner.com') . '/verified')
+                ->with('error', 'Invalid token. Email verification failed.');
         }
     }
 
