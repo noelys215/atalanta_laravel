@@ -134,9 +134,9 @@ class UserController extends Controller
             $user->notify(new WelcomeEmail());
 
             // Redirect to frontend /verified route
-            return redirect(env('APP_CLIENT_URL', 'http://localhost:5173') . '/verified')->with('success', 'Email verified successfully. Welcome!');
+            return redirect(env('APP_CLIENT_URL', 'https://xx82fv3rgu.us-east-1.awsapprunner.com') . '/verified')->with('success', 'Email verified successfully. Welcome!');
         } else {
-            return redirect(env('APP_CLIENT_URL', 'http://localhost:5173') . '/verified')->with('error', 'Invalid token. Email verification failed.');
+            return redirect(env('APP_CLIENT_URL', 'https://xx82fv3rgu.us-east-1.awsapprunner.com') . '/verified')->with('error', 'Invalid token. Email verification failed.');
         }
     }
 
