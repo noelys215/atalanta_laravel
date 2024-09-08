@@ -133,10 +133,10 @@ class UserController extends Controller
             $user->notify(new WelcomeEmail());
 
             // Make sure this points to your App Runner URL
-            return redirect(env('APP_CLIENT_URL', 'https://xx82fv3rgu.us-east-1.awsapprunner.com') . '/verified')
+            return redirect(env('APP_CLIENT_URL', 'https://atalanta.world') . '/verified')
                 ->with('success', 'Email verified successfully. Welcome!');
         } else {
-            return redirect(env('APP_CLIENT_URL', 'https://xx82fv3rgu.us-east-1.awsapprunner.com') . '/verified')
+            return redirect(env('APP_CLIENT_URL', 'https://atalanta.world') . '/verified')
                 ->with('error', 'Invalid token. Email verification failed.');
         }
     }
@@ -210,16 +210,9 @@ class UserController extends Controller
     // Update User Profile
     public function updateUserProfile(Request $request)
     {
-        \Log::info('Incoming request to update profile:', ['data' => $request->all()]);
-
         $user = Auth::user();
 
         if ($user) {
-            \Log::info('User authenticated:', ['user' => $user->id]);
-
-            // Log changes before updating
-            \Log::info('User data before update:', $user->toArray());
-
             $user->first_name = $request->firstName ?? $user->first_name;
             $user->last_name = $request->lastName ?? $user->last_name;
             $user->email = $request->email ?? $user->email;
@@ -232,13 +225,8 @@ class UserController extends Controller
             $user->postal_code = $request->postalCode ?? $user->postal_code;
 
             $user->save();
-
-            \Log::info('User profile updated successfully:', ['user' => $user->id]);
-
             return response()->json($user, 200);
         } else {
-            // Log when user is not found
-            \Log::error('User not authenticated or not found');
             return response()->json(['error' => 'User not found'], 404);
         }
     }

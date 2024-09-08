@@ -6,7 +6,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*', 'http://localhost:5173', 'https://atalantaimages.s3.amazonaws.com', 'https://xx82fv3rgu.us-east-1.awsapprunner.com'],
+    'allowed_origins' => ['*', 'http://localhost:5173','http://localhost:8000' ,'https://atalantaimages.s3.amazonaws.com', 'https://xx82fv3rgu.us-east-1.awsapprunner.com', 'https://atalanta.world/'],
 
     'allowed_headers' => ['*'],
 

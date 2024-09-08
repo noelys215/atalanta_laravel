@@ -52,12 +52,14 @@ return [
 
     'channels' => [
 
+        // Stack channel to combine multiple channels
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', env('LOG_STACK', 'single')),
+            'channels' => ['daily'], // Changed to 'daily' for better log management
             'ignore_exceptions' => false,
         ],
 
+        // Single file channel for logging all entries in a single file
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),
@@ -65,6 +67,7 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Daily file channel for rotating logs daily
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
@@ -73,6 +76,7 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // A separate debug channel
         'debug' => [
             'driver' => 'single',
             'path' => storage_path('logs/debug.log'),
@@ -80,6 +84,7 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Slack integration for critical level logging
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),
@@ -89,18 +94,20 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Papertrail integration for remote logging
         'papertrail' => [
             'driver' => 'monolog',
             'level' => env('LOG_LEVEL', 'debug'),
-            'handler' => env('LOG_PAPERTRAIL_HANDLER', SyslogUdpHandler::class),
+            'handler' => SyslogUdpHandler::class,
             'handler_with' => [
                 'host' => env('PAPERTRAIL_URL'),
                 'port' => env('PAPERTRAIL_PORT'),
-                'connectionString' => 'tls://'.env('PAPERTRAIL_URL').':'.env('PAPERTRAIL_PORT'),
+                'connectionString' => 'tls://' . env('PAPERTRAIL_URL') . ':' . env('PAPERTRAIL_PORT'),
             ],
             'processors' => [PsrLogMessageProcessor::class],
         ],
 
+        // Logs to stderr
         'stderr' => [
             'driver' => 'monolog',
             'level' => env('LOG_LEVEL', 'debug'),
@@ -112,6 +119,7 @@ return [
             'processors' => [PsrLogMessageProcessor::class],
         ],
 
+        // Syslog for server logging
         'syslog' => [
             'driver' => 'syslog',
             'level' => env('LOG_LEVEL', 'debug'),
@@ -119,17 +127,20 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // PHP Error logging
         'errorlog' => [
             'driver' => 'errorlog',
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
         ],
 
+        // Null handler for testing or disabling specific logs
         'null' => [
             'driver' => 'monolog',
             'handler' => NullHandler::class,
         ],
 
+        // Emergency log for fallback when other channels fail
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
