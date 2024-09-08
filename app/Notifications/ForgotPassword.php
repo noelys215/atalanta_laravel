@@ -42,7 +42,7 @@ class ForgotPassword extends Notification
     {
         return (new MailMessage)
             ->line('You are receiving this email because we received a password reset request for your account.')
-            ->action('Reset Password', url('/reset-password?token=' . $this->token))
+            ->action('Reset Password', url(env('APP_CLIENT_URL', ) . '/reset-password?token=' . $this->token))
             ->line('If you did not request a password reset, no further action is required.');
     }
 }
