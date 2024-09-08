@@ -210,9 +210,16 @@ class UserController extends Controller
     // Update User Profile
     public function updateUserProfile(Request $request)
     {
+        \Log::info('Incoming request to update profile:', ['data' => $request->all()]);
+
         $user = Auth::user();
 
         if ($user) {
+            \Log::info('User authenticated:', ['user' => $user->id]);
+
+            // Log changes before updating
+            \Log::info('User data before update:', $user->toArray());
+
             $user->first_name = $request->firstName ?? $user->first_name;
             $user->last_name = $request->lastName ?? $user->last_name;
             $user->email = $request->email ?? $user->email;
@@ -226,8 +233,12 @@ class UserController extends Controller
 
             $user->save();
 
+            \Log::info('User profile updated successfully:', ['user' => $user->id]);
+
             return response()->json($user, 200);
         } else {
+            // Log when user is not found
+            \Log::error('User not authenticated or not found');
             return response()->json(['error' => 'User not found'], 404);
         }
     }
