@@ -132,7 +132,6 @@ class UserController extends Controller
 
             $user->notify(new WelcomeEmail());
 
-            // Make sure this points to your App Runner URL
             return redirect(env('APP_CLIENT_URL', 'https://atalanta.world') . '/verified')
                 ->with('success', 'Email verified successfully. Welcome!');
         } else {
