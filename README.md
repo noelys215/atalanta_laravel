@@ -48,6 +48,7 @@ The **Atalanta A.C. API** is the backbone of the Atalanta e-commerce platform, b
 -   [![Laravel][Laravel.com]][Laravel-url]
 -   [![Filament][Filament.com]][Filament-url]
 -   [![AWS]][AWS-url]
+-   [![Stripe]][Stripe-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -147,3 +148,5 @@ The **Atalanta A.C. API** is hosted and deployed using **Laravel Forge**, which 
 [Filament-url]: https://filamentphp.com
 [AWS]: https://img.shields.io/badge/Amazon_AWS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white
 [AWS-url]: https://aws.amazon.com/
+[Stripe]: https://img.shields.io/badge/Stripe-626CD9?style=for-the-badge&logo=Stripe&logoColor=white
+[Stripe-url]: https://stripe.com/
