@@ -11,7 +11,6 @@
   <p align="center">
     The powerhouse behind Atalanta A.C., built with Laravel and Filament, handling everything from order management and user handling to secure payments and automated email delivery.
     <br />
-    <a href="/"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     <a href="https://www.atalanta.world">View Demo</a>
