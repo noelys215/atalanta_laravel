@@ -4,30 +4,72 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
-use Filament\Forms\Components\FileUpload;
+use BackedEnum;
+use Closure;
+use Filament\Actions;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Resources\Resource;
-use Filament\Tables\Actions\CreateAction;
+use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Filament\Tables;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BooleanColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
 
 class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-shopping-bag';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shopping-bag';
 
-    public static function form(Form $form): Form
+    /**
+     * Apparel sizes (XS-XXL)
+     */
+    public const APPAREL_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
+    /**
+     * Shoe sizes (6-13 with half sizes)
+     */
+    public const SHOE_SIZES = ['6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10', '10.5', '11', '11.5', '12', '12.5', '13'];
+
+    /**
+     * One size
+     */
+    public const ONE_SIZE = ['OS'];
+
+    /**
+     * Get sizes based on product category
+     */
+    public static function getSizesForCategory(?string $category): array
     {
-        return $form
+        return match ($category) {
+            'footwear' => self::SHOE_SIZES,
+            'tops', 'bottoms' => self::APPAREL_SIZES,
+            default => self::ONE_SIZE,
+        };
+    }
+
+    /**
+     * Build inventory array with all sizes for a category (default quantity 3)
+     */
+    public static function buildInventoryForCategory(?string $category): array
+    {
+        $sizes = self::getSizesForCategory($category);
+        return array_map(fn($size) => ['size' => $size, 'quantity' => 3], $sizes);
+    }
+
+    public static function form(Schema $schema): Schema
+    {
+        return $schema
             ->schema([
                 TextInput::make('name')
                     ->required()
@@ -40,20 +82,24 @@ class ProductResource extends Resource
                     ->numeric(),
                 Select::make('category')
                     ->options([
-                        'tanks' => 'tanks',
-                        'shirts' => 'shirts',
-                        'jackets' => 'jackets',
-                        'pants' => 'pants',
-                        'shorts' => 'shorts',
-                        'footwear' => 'footwear',
-                        'all' => 'all',
+                        'tops' => 'Tops',
+                        'bottoms' => 'Bottoms',
+                        'footwear' => 'Footwear',
+                        'electronics' => 'Electronics',
+                        'furniture' => 'Furniture',
+                        'all' => 'All',
                     ])
-                    ->required(),
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function (Set $set, ?string $state, Get $get) {
+                        // When category changes, reset inventory to appropriate sizes
+                        $set('inventory', self::buildInventoryForCategory($state));
+                    }),
                 Select::make('department')
                     ->options([
-                        'accessories' => 'accessories',
-                        'man' => 'man',
-                        'woman' => 'woman',
+                        'Homme' => 'Homme',
+                        'Femme' => 'Femme',
+                        'Essentials' => 'Essentials',
                     ])
                     ->required(),
                 TextInput::make('brand')
@@ -63,58 +109,49 @@ class ProductResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Textarea::make('description')->rows(5)->autosize()->columnSpan('full'),
-                Repeater::make('inventory')
+
+                Section::make('Inventory')
+                    ->description(fn (Get $get): string => match ($get('category')) {
+                        'footwear' => 'Shoe sizes (6-13). Delete rows you don\'t stock.',
+                        'tops', 'bottoms' => 'Apparel sizes (XS-XXL). Delete rows you don\'t stock.',
+                        default => 'One size (OS)',
+                    })
                     ->schema([
-                        Select::make('size')
-                            ->options([
-                                'XS' => 'XS',
-                                'S' => 'S',
-                                'M' => 'M',
-                                'L' => 'L',
-                                'XL' => 'XL',
-                                'XXL' => 'XXL',
-                                'OS' => 'OS',
-                                '6' => '6',
-                                '6.5' => '6.5',
-                                '7' => '7',
-                                '7.5' => '7.5',
-                                '8' => '8',
-                                '8.5' => '8.5',
-                                '9' => '9',
-                                '9.5' => '9.5',
-                                '10' => '10',
-                                '10.5' => '10.5',
-                                '11' => '11',
-                                '11.5' => '11.5',
-                                '12' => '12',
-                                '12.5' => '12.5',
-                                '13' => '13',
+                        Repeater::make('inventory')
+                            ->label('')
+                            ->schema([
+                                TextInput::make('size')
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->columnSpan(1),
+                                TextInput::make('quantity')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->step(1)
+                                    ->default(0)
+                                    ->required()
+                                    ->columnSpan(1),
                             ])
-                            ->required(),
-                        TextInput::make('quantity')
-                            ->required()
-                            ->numeric(),
+                            ->columns(2)
+                            ->addable(false)
+                            ->reorderable(false)
+                            ->deletable(true)
+                            ->grid(fn (Get $get): int => match ($get('../category')) {
+                                'footwear' => 3,
+                                'tops', 'bottoms' => 3,
+                                default => 1,
+                            })
+                            ->default(fn (Get $get): array => self::buildInventoryForCategory($get('../category')))
+                            ->columnSpan('full'),
                     ])
                     ->columnSpan('full'),
-                FileUpload::make('image')
+
+                SpatieMediaLibraryFileUpload::make('images')
+                    ->collection('product_images')
                     ->multiple()
-                    ->image()
                     ->reorderable()
-                    ->disk('s3')
-                    ->panelLayout('grid')
-                    ->directory('products')
-                    ->visibility('public')
-                    ->saveUploadedFileUsing(function ($file, $state, $set) {
-                        $path = $file->store('products', 's3');
-                        Storage::disk('s3')->setVisibility($path, 'public');
-                        $url = "https://atalantaimages.s3.amazonaws.com/" . $path;
-
-                        // Append URL to images array
-                        $state[] = $url;
-                        $set('image', $state);
-
-                        return $url;
-                    }),
+                    ->image()
+                    ->panelLayout('grid'),
                 TextInput::make('slug')
                     ->required()
                     ->maxLength(255),
@@ -125,6 +162,12 @@ class ProductResource extends Resource
     {
         return $table
             ->columns([
+                SpatieMediaLibraryImageColumn::make('images')
+                    ->collection('product_images')
+                    ->limit(1)
+                    ->circular()
+                    ->visibility('private')
+                    ->checkFileExistence(false),
                 TextColumn::make('name')->sortable()->searchable(),
                 TextColumn::make('price')->sortable()->searchable(),
                 TextColumn::make('category')->sortable()->searchable(),
@@ -140,17 +183,33 @@ class ProductResource extends Resource
                 TextColumn::make('updated_at')->dateTime()->sortable(),
             ])
             ->filters([
-                //
+                SelectFilter::make('department')
+                    ->options([
+                        'Homme' => 'Homme',
+                        'Femme' => 'Femme',
+                        'Essentials' => 'Essentials',
+                    ])
+                    ->searchable(),
+                SelectFilter::make('category')
+                    ->options([
+                        'tops' => 'tops',
+                        'bottoms' => 'bottoms',
+                        'footwear' => 'footwear',
+                        'electronics' => 'electronics',
+                        'furniture' => 'furniture',
+                        'all' => 'all',
+                    ])
+                    ->searchable(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Actions\EditAction::make(),
+                Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+                Actions\DeleteBulkAction::make(),
             ])
             ->headerActions([
-                CreateAction::make(),
+                Actions\CreateAction::make(),
             ]);
     }
 
@@ -182,4 +241,3 @@ class ProductResource extends Resource
         return $data;
     }
 }
-

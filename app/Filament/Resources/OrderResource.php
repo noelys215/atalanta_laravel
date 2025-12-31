@@ -6,18 +6,21 @@ use App\Filament\Resources\OrderResource\Pages;
 use App\Models\Order;
 use App\Models\Product;
 use App\Notifications\OrderPaidNotification;
+use BackedEnum;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
-use Filament\Tables\Actions\CreateAction;
+use Filament\Actions;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
@@ -25,17 +28,20 @@ class OrderResource extends Resource
 {
     protected static ?string $model = Order::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-document';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-document';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->schema([
 
                 TextInput::make('short_order_id')
                     ->label('Short Order ID')
                     ->required()
                     ->maxLength(255)->columnSpanFull(),
+                TextInput::make('tracking_number')
+                    ->label('Tracking Number')
+                    ->maxLength(32),
 
                 TextInput::make('customer_name')
                     ->label('Customer Name')
@@ -63,9 +69,23 @@ class OrderResource extends Resource
                             ->label('Price')
                             ->required()
                             ->numeric(),
+                        Placeholder::make('image_preview')
+                            ->label('Image')
+                            ->content(function (callable $get) {
+                                $imageUrl = $get('image');
+
+                                if (! is_string($imageUrl) || $imageUrl === '') {
+                                    return '-';
+                                }
+
+                                $escapedUrl = e($imageUrl);
+
+                                return new HtmlString(
+                                    "<img src=\"{$escapedUrl}\" alt=\"Order item image\" style=\"max-width: 120px; height: auto; border-radius: 6px;\" />"
+                                );
+                            }),
                         TextInput::make('image')
                             ->label('Image URL')
-                            ->required()
                             ->url(),
                         TextInput::make('size')
                             ->label('Size')
@@ -102,28 +122,38 @@ class OrderResource extends Resource
                     ->label('Paid At'),
                 DateTimePicker::make('shipped_at')
                     ->label('Shipped At'),
+                DateTimePicker::make('delivered_at')
+                    ->label('Delivered At'),
 
-                TextInput::make('shipping_address.address')
+                TextInput::make('shipping_address.name')
+                    ->label('Recipient Name'),
+                TextInput::make('shipping_address.address.line1')
                     ->label('Street')
-                    ->required(),
-                TextInput::make('shipping_address.city')
+                    ->maxLength(255),
+                TextInput::make('shipping_address.address.line2')
+                    ->label('Street 2')
+                    ->maxLength(255),
+                TextInput::make('shipping_address.address.city')
                     ->label('City')
-                    ->required(),
-                TextInput::make('shipping_address.state')
+                    ->maxLength(255),
+                TextInput::make('shipping_address.address.state')
                     ->label('State')
-                    ->required(),
-                TextInput::make('shipping_address.postal_code')
+                    ->maxLength(255),
+                TextInput::make('shipping_address.address.postal_code')
                     ->label('ZIP')
-                    ->required(),
-                TextInput::make('shipping_address.country')
+                    ->maxLength(255),
+                TextInput::make('shipping_address.address.country')
                     ->label('Country')
-                    ->required(),
+                    ->maxLength(255),
 
                 Toggle::make('is_paid')
                     ->label('Is Paid')
                     ->required(),
                 Toggle::make('is_shipped')
                     ->label('Is Shipped')
+                    ->required(),
+                Toggle::make('is_delivered')
+                    ->label('Is Delivered')
                     ->required(),
             ]);
     }
@@ -145,7 +175,9 @@ class OrderResource extends Resource
                 ToggleColumn::make('is_paid')->sortable()->searchable(),
                 TextColumn::make('paid_at')->dateTime()->sortable(),
                 ToggleColumn::make('is_shipped')->sortable()->searchable(),
+                ToggleColumn::make('is_delivered')->sortable()->searchable(),
                 TextColumn::make('shipped_at')->dateTime()->sortable(),
+                TextColumn::make('delivered_at')->dateTime()->sortable(),
                 TextColumn::make('created_at')->dateTime()->sortable(),
                 TextColumn::make('updated_at')->dateTime()->sortable(),
             ])
@@ -153,14 +185,14 @@ class OrderResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Actions\EditAction::make(),
+                Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+                Actions\DeleteBulkAction::make(),
             ])
             ->headerActions([
-                CreateAction::make(),
+                Actions\CreateAction::make(),
             ]);
     }
 
@@ -180,71 +212,105 @@ class OrderResource extends Resource
         ];
     }
 
+    public static function mutateFormDataBeforeSave(array $data): array
+    {
+        if (! empty($data['is_delivered'])) {
+            $data['is_shipped'] = true;
+            $data['delivered_at'] = $data['delivered_at'] ?? now();
+            $data['shipped_at'] = $data['shipped_at'] ?? now();
+        }
+
+        if (! empty($data['is_shipped'])) {
+            $data['shipped_at'] = $data['shipped_at'] ?? now();
+        }
+
+        return $data;
+    }
+
     public static function handleOrderPaid(Order $order)
     {
         if ($order->is_paid) {
+            $shouldAdjustInventory = $order->inventory_adjusted_at === null;
+            $orderItems = is_string($order->order_items) ? json_decode($order->order_items, true) : $order->order_items;
 
-            if ($order->user) {
-                $orderItems = is_string($order->order_items) ? json_decode($order->order_items, true) : $order->order_items;
+            if ($shouldAdjustInventory) {
                 foreach ($orderItems as $item) {
-                    $product = Product::where('name', $item['name'])->first();
-                    if ($product) {
-                        $inventory = is_string($product->inventory) ? json_decode($product->inventory, true) : $product->inventory;
-                        foreach ($inventory as &$invItem) {
-                            if ($invItem['size'] == $item['selectedSize']) {
-                                Log::info('Adjusting inventory for product: ' . $product->name . ', size: ' . $item['selectedSize'] . ', quantity before: ' . $invItem['quantity']);
-                                $invItem['quantity'] -= $item['quantity'];
-                                Log::info('Quantity after adjustment: ' . $invItem['quantity']);
-                            }
-                        }
-                        $product->inventory = $inventory;
-                        $product->save();
+                    $productName = $item['description'] ?? $item['name'] ?? null;
+                    $selectedSize = $item['size'] ?? $item['selectedSize'] ?? null;
+                    $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 0;
+
+                    if (! $productName || ! $selectedSize || $quantity < 1) {
+                        continue;
                     }
+
+                    $product = Product::where('name', $productName)->first();
+                    if (! $product) {
+                        continue;
+                    }
+
+                    $inventory = is_string($product->inventory) ? json_decode($product->inventory, true) : $product->inventory;
+                    foreach ($inventory as &$invItem) {
+                        if (($invItem['size'] ?? null) === $selectedSize) {
+                            Log::info('Adjusting inventory for product: ' . $product->name . ', size: ' . $selectedSize . ', quantity before: ' . $invItem['quantity']);
+                            $invItem['quantity'] = max(0, (int) $invItem['quantity'] - $quantity);
+                            Log::info('Quantity after adjustment: ' . $invItem['quantity']);
+                        }
+                    }
+                    $product->inventory = $inventory;
+                    $product->save();
                 }
 
-                // Send email to the user
-                try {
-                    Notification::route('mail', $order->customer_email)
-                        ->notify(new OrderPaidNotification($order));
-                    \Log::info('Order paid email sent successfully', ['order_id' => $order->id, 'email' => $order->customer_email]);
-                } catch (\Exception $e) {
-                    \Log::error('Failed to send order paid email', [
-                        'order_id' => $order->id,
-                        'email' => $order->customer_email,
-                        'error_message' => $e->getMessage(),
-                    ]);
-                }
-            } else {
-                throw new ModelNotFoundException('User not found for order ID: ' . $order->id);
+                $order->forceFill(['inventory_adjusted_at' => now()])->save();
+            }
+
+            // Send email to the user
+            try {
+                Notification::route('mail', $order->customer_email)
+                    ->notify(new OrderPaidNotification($order));
+                \Log::info('Order paid email sent successfully', ['order_id' => $order->id, 'email' => $order->customer_email]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to send order paid email', [
+                    'order_id' => $order->id,
+                    'email' => $order->customer_email,
+                    'error_message' => $e->getMessage(),
+                ]);
             }
         }
     }
 
     public static function handleOrderCancelled(Order $order)
     {
-        if ($order->is_paid) {
+        if ($order->is_paid && $order->inventory_adjusted_at) {
             Log::info('Order marked as cancelled: ' . $order->id);
 
-            if ($order->user) {
-                $orderItems = is_string($order->order_items) ? json_decode($order->order_items, true) : $order->order_items;
-                foreach ($orderItems as $item) {
-                    $product = Product::where('name', $item['name'])->first();
-                    if ($product) {
-                        $inventory = is_string($product->inventory) ? json_decode($product->inventory, true) : $product->inventory;
-                        foreach ($inventory as &$invItem) {
-                            if ($invItem['size'] == $item['selectedSize']) {
-                                Log::info('Restoring inventory for product: ' . $product->name . ', size: ' . $item['selectedSize'] . ', quantity before: ' . $invItem['quantity']);
-                                $invItem['quantity'] += $item['quantity'];
-                                Log::info('Quantity after restoration: ' . $invItem['quantity']);
-                            }
-                        }
-                        $product->inventory = $inventory;
-                        $product->save();
+            $orderItems = is_string($order->order_items) ? json_decode($order->order_items, true) : $order->order_items;
+            foreach ($orderItems as $item) {
+                $productName = $item['description'] ?? $item['name'] ?? null;
+                $selectedSize = $item['size'] ?? $item['selectedSize'] ?? null;
+                $quantity = isset($item['quantity']) ? (int) $item['quantity'] : 0;
+
+                if (! $productName || ! $selectedSize || $quantity < 1) {
+                    continue;
+                }
+
+                $product = Product::where('name', $productName)->first();
+                if (! $product) {
+                    continue;
+                }
+
+                $inventory = is_string($product->inventory) ? json_decode($product->inventory, true) : $product->inventory;
+                foreach ($inventory as &$invItem) {
+                    if (($invItem['size'] ?? null) === $selectedSize) {
+                        Log::info('Restoring inventory for product: ' . $product->name . ', size: ' . $selectedSize . ', quantity before: ' . $invItem['quantity']);
+                        $invItem['quantity'] = (int) $invItem['quantity'] + $quantity;
+                        Log::info('Quantity after restoration: ' . $invItem['quantity']);
                     }
                 }
-            } else {
-                Log::error('User not found for order ID: ' . $order->id);
+                $product->inventory = $inventory;
+                $product->save();
             }
+
+            $order->forceFill(['inventory_adjusted_at' => null])->save();
         }
     }
 }

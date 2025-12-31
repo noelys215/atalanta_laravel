@@ -76,6 +76,25 @@ The **Atalanta A.C. API** manages the following core responsibilities:
 
 ---
 
+## Image Uploads (Media Library)
+
+Product images are managed with **spatie/laravel-medialibrary** and stored on the configured disk (default `FILESYSTEM_DISK`, override with `MEDIA_DISK`).
+
+1. Run migrations (includes the media table):
+    - `php artisan migrate`
+2. Upload images in Filament on the Product form (multiple images supported).
+3. Backfill existing image URLs into media (one-off):
+    - `php artisan products:backfill-media`
+    - Optional: `php artisan products:backfill-media --limit=100`
+
+Notes:
+- Media is stored in the `media` table and attached to products in the `product_images` collection.
+- Existing `products.image` is kept for API compatibility and will reflect media URLs when present.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+---
+
 ## Key Features
 
 1. **Comprehensive Admin Dashboard**  
@@ -129,6 +148,33 @@ The **Atalanta A.C. API** is hosted and deployed using **Laravel Forge**, which 
 - **Graphs and Charts**: Add visual elements to the dashboard to track financial metrics, such as revenue flow over time.
 - **Enhanced CMS Features**: Introduce more flexible content management tools, allowing admins to create frontend component blocks without needing to hard-code information.
 - **Improved Inventory Management**: Implement a more efficient queue system to handle stock updates upon payment, offering a more robust inventory management experience.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+---
+
+## Dev Seeding (Platzi Import)
+
+This project includes a dev/staging-only import path that pulls products from the Platzi Fake Store API and inserts/updates them in your local database. It is not used at runtime.
+
+1. Run the migration:
+    - `php artisan migrate`
+2. Run the import as a command:
+    - `php artisan platzi:import-products --limit=50 --page=1`
+    - Optional image download: `php artisan platzi:import-products --download-images`
+3. Or run the seeder:
+    - `php artisan db:seed --class=PlatziProductSeeder`
+
+Configuration (optional env overrides):
+- `PLATZI_API_BASE` (default `https://api.escuelajs.co/api/v1`)
+- `PLATZI_IMPORT_LIMIT`
+- `PLATZI_IMPORT_PER_PAGE`
+- `PLATZI_DEFAULT_DEPARTMENT`, `PLATZI_DEFAULT_BRAND`, `PLATZI_DEFAULT_COLOR`
+
+Notes:
+- Imports are idempotent using `external_source` + `external_id`.
+- All Platzi image URLs are stored in `products.image`.
+- If `--download-images` is enabled, images are downloaded into the media library (`product_images` collection).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

@@ -17,7 +17,7 @@ class ProductFactory extends Factory
             'name' => $this->faker->word,
             'price' => $this->faker->randomFloat(2, 10, 500),
             'category' => $this->faker->word,
-            'department' => $this->faker->word,
+            'department' => $this->faker->randomElement(['Homme', 'Femme', 'Essentials']),
             'brand' => $this->faker->word,
             'color' => $this->faker->safeColorName,
             'description' => $this->faker->sentence,

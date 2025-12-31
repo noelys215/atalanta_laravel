@@ -5,12 +5,13 @@ namespace Tests\Unit;
 use Tests\TestCase;
 use App\Models\SeasonalCard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 
 class SeasonalCardControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
+    #[Test]
     public function it_can_fetch_all_seasonal_cards()
     {
         // Create some seasonal cards in the database
@@ -27,7 +28,7 @@ class SeasonalCardControllerTest extends TestCase
     }
 
 
-    /** @test */
+    #[Test]
     public function it_returns_404_if_seasonal_card_not_found()
     {
         // Make a GET request to the show route with a non-existing slug

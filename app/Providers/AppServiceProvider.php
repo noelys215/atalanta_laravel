@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Console\Commands\ImportPlatziProducts;
+use App\Console\Commands\BackfillProductMedia;
 use App\Livewire\ToggleIsAdmin;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
@@ -22,5 +24,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         Livewire::component('toggle-is-admin', ToggleIsAdmin::class);
+        $this->commands([
+            BackfillProductMedia::class,
+            ImportPlatziProducts::class,
+        ]);
     }
 }

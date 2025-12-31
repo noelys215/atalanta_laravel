@@ -16,7 +16,7 @@ class StripeControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->stripeServiceMock = $this->createMock(StripeService::class);
+        $this->stripeServiceMock = $this->createStub(StripeService::class);
         $this->app->instance(StripeService::class, $this->stripeServiceMock);
     }
 

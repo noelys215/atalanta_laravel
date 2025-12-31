@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Product;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 
@@ -26,22 +25,7 @@ class ProductController extends Controller
             'image.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
-        $images = [];
-        if ($request->hasFile('image')) {
-            foreach ($request->file('image') as $file) {
-                try {
-                    $path = $file->store('products', 's3');
-                    Storage::disk('s3')->setVisibility($path, 'public');
-
-                    $url = Storage::disk('s3')->url($path);
-                    $images[] = $url;
-
-                } catch (\Exception $e) {
-                    Log::error('Error uploading image to S3: ' . $e->getMessage());
-                    return response()->json(['error' => $e->getMessage()], 500);
-                }
-            }
-        }
+        $imageFiles = $request->file('image', []);
 
         try {
             $product = new Product([
@@ -53,11 +37,27 @@ class ProductController extends Controller
                 'color' => $request->color,
                 'description' => $request->description,
                 'inventory' => $request->inventory,
-                'image' => $images,  // Store URLs directly
+                'image' => [],
                 'slug' => Str::slug($request->name),
             ]);
 
             $product->save();
+
+            $images = [];
+
+            foreach ($imageFiles as $file) {
+                try {
+                    $media = $product->addMedia($file)->toMediaCollection('product_images');
+                    $images[] = $media->getUrl();
+                } catch (\Exception $e) {
+                    Log::error('Error uploading image via media library: ' . $e->getMessage());
+                    return response()->json(['error' => $e->getMessage()], 500);
+                }
+            }
+
+            if (count($images) > 0) {
+                $product->forceFill(['image' => $images])->save();
+            }
 
             // Navigate back to admin/products
             return redirect()->route('filament.resources.products.index')->with('success', 'Product created successfully.');
@@ -134,5 +134,3 @@ class ProductController extends Controller
     }
 
 }
-
-

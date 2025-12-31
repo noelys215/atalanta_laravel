@@ -29,11 +29,11 @@ class StripeController extends Controller
         $userInfo = $request->input('user_info');
 
         try {
-            $clientUrl = env('APP_CLIENT_URL', 'http://localhost:5173');
+            $clientUrl = rtrim(env('APP_CLIENT_URL', 'http://localhost:5173'), '/');
 
             $checkoutSession = $this->stripeService->createCheckoutSession(
                 $request->input('line_items'),
-                url("{$clientUrl}/return?session_id={CHECKOUT_SESSION_ID}"),
+                "{$clientUrl}/return?session_id={CHECKOUT_SESSION_ID}",
                 $userInfo
             );
 
@@ -91,27 +91,38 @@ class StripeController extends Controller
 
             // Create a new order
             try {
-                $order = Order::create([
+            $shippingDetails = $session->shipping_details ?? null;
+            $shippingAddress = $shippingDetails->address ?? ($session->customer_details->address ?? null);
+
+            $trackingNumber = 'EA' . str_pad((string) random_int(0, 999999999), 9, '0', STR_PAD_LEFT) . 'US';
+
+            $order = Order::create([
                     'user_id' => $userId,
                     'short_order_id' => $shortOrderId,
+                    'tracking_number' => $trackingNumber,
                     'order_items' => $lineItems,
                     'shipping_address' => [
-                        'address' => $session->shipping_details->address->line1,
-                        'city' => $session->shipping_details->address->city,
-                        'state' => $session->shipping_details->address->state,
-                        'postal_code' => $session->shipping_details->address->postal_code,
-                        'country' => $session->shipping_details->address->country,
+                        'address' => [
+                            'line1' => $shippingAddress->line1 ?? null,
+                            'line2' => $shippingAddress->line2 ?? null,
+                            'city' => $shippingAddress->city ?? null,
+                            'state' => $shippingAddress->state ?? null,
+                            'postal_code' => $shippingAddress->postal_code ?? null,
+                            'country' => $shippingAddress->country ?? null,
+                        ],
+                        'name' => $shippingDetails->name ?? ($session->customer_details->name ?? null),
                     ],
                     'payment_method' => 'Stripe',
                     'items_price' => array_sum(array_column($lineItems, 'price')),
-                    'tax_price' => $session->total_details->amount_tax / 100,
-                    'shipping_price' => $session->total_details->amount_shipping / 100,
+                    'tax_price' => ($session->total_details->amount_tax ?? 0) / 100,
+                    'shipping_price' => ($session->total_details->amount_shipping ?? 0) / 100,
                     'total_price' => $session->amount_total / 100,
                     'is_paid' => true,
                     'paid_at' => now(),
                     'is_shipped' => false,
+                    'is_delivered' => false,
                     'customer_name' => $session->customer_details->name ?? null,
-                    'customer_email' => $session->customer_email ?? null,
+                    'customer_email' => $session->customer_details->email ?? ($session->customer_email ?? null),
                     'payment_result' => json_encode($session->payment_intent) ? 'Complete' : 'Incomplete',
                 ]);
 
@@ -131,6 +142,7 @@ class StripeController extends Controller
                 \Log::info($order);
 
                 // Adjust inventory
+                $inventoryAdjusted = false;
                 foreach ($lineItems as $item) {
                     $product = Product::where('name', $item['description'])->first();
                     if ($product) {
@@ -144,7 +156,12 @@ class StripeController extends Controller
                         }
                         $product->inventory = $inventory;
                         $product->save();
+                        $inventoryAdjusted = true;
                     }
+                }
+
+                if ($inventoryAdjusted) {
+                    $order->forceFill(['inventory_adjusted_at' => now()])->save();
                 }
 
                 \Log::info('Order created successfully', ['order_id' => $order->id]);
@@ -169,12 +186,19 @@ class StripeController extends Controller
     private function formatOrderResponse($order, $session)
     {
         try {
+            $shippingDetails = $session->shipping_details ?? null;
+            $fallbackAddress = $session->customer_details->address ?? null;
+            $shippingDetails = $shippingDetails ?: ($fallbackAddress ? (object) [
+                'name' => $session->customer_details->name ?? null,
+                'address' => $fallbackAddress,
+            ] : null);
+
             return response()->json([
                 'status' => $session->status,
                 'customer_name' => $session->customer_details->name ?? null,
-                'customer_email' => $session->customer_email ?? null,
+                'customer_email' => $session->customer_details->email ?? ($session->customer_email ?? null),
                 'billing_address' => $session->customer_details->address ?? null,
-                'shipping_address' => $session->shipping_details ?? null,
+                'shipping_address' => $shippingDetails,
                 'order_date' => $session->created,
                 'order_details' => [
                     'line_items' => $order->order_items,
@@ -182,6 +206,9 @@ class StripeController extends Controller
                     'tax' => $session->total_details->amount_tax / 100, // Convert to dollars if in cents
                     'total_price' => $session->amount_total / 100, // Convert to dollars if in cents
                 ],
+                'is_shipped' => (bool) $order->is_shipped,
+                'is_delivered' => (bool) $order->is_delivered,
+                'tracking_number' => $order->tracking_number,
                 'short_order_id' => $order->short_order_id, // Include the short_order_id in the response
             ]);
         } catch (\Exception $e) {
@@ -253,6 +280,16 @@ class StripeController extends Controller
 
             $session = $sessionData['session'];
             $shortOrderId = $sessionData['short_order_id'];
+            $shippingDetails = $session['shipping_details'] ?? null;
+            $fallbackAddress = $session['customer_details']['address'] ?? null;
+            $order = Order::where('short_order_id', $shortOrderId)->first();
+
+            if (! $shippingDetails && $fallbackAddress) {
+                $shippingDetails = [
+                    'name' => $session['customer_details']['name'] ?? null,
+                    'address' => $fallbackAddress,
+                ];
+            }
 
             // Ensure line_items key exists
             $lineItems = [];
@@ -271,9 +308,9 @@ class StripeController extends Controller
             return response()->json([
                 'status' => $session['status'],
                 'customer_name' => $session['customer_details']['name'] ?? null,
-                'customer_email' => $session['customer_email'] ?? null,
+                'customer_email' => $session['customer_details']['email'] ?? ($session['customer_email'] ?? null),
                 'billing_address' => $session['customer_details']['address'] ?? null,
-                'shipping_address' => $session['shipping_details'] ?? null,
+                'shipping_address' => $shippingDetails,
                 'order_date' => $session['created'],
                 'order_details' => [
                     'line_items' => $lineItems,
@@ -281,6 +318,9 @@ class StripeController extends Controller
                     'tax' => $session['total_details']['amount_tax'] / 100, // Convert to dollars if in cents
                     'total_price' => $session['amount_total'] / 100, // Convert to dollars if in cents
                 ],
+                'is_shipped' => (bool) ($order?->is_shipped ?? false),
+                'is_delivered' => (bool) ($order?->is_delivered ?? false),
+                'tracking_number' => $order?->tracking_number,
                 'short_order_id' => $shortOrderId, // Include the short_order_id in the response
             ]);
         } catch (\Exception $e) {

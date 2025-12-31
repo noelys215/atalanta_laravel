@@ -73,6 +73,15 @@
     </style>
 </head>
 <body>
+@php
+    $shippingAddress = $order->shipping_address['address'] ?? [];
+    $line1 = $shippingAddress['line1'] ?? '';
+    $line2 = $shippingAddress['line2'] ?? '';
+    $city = $shippingAddress['city'] ?? '';
+    $state = $shippingAddress['state'] ?? '';
+    $postalCode = $shippingAddress['postal_code'] ?? '';
+    $country = $shippingAddress['country'] ?? '';
+@endphp
 <div class="container">
     <div class="header">
         <h1>Greetings from Atalanta!</h1>
@@ -84,20 +93,31 @@
         <p><strong>Shipping Address:</strong></p>
         <p>
             {{ $order->customer_name }}<br>
-            {{ $order->shipping_address['address'] }}<br>
-            {{ $order->shipping_address['city'] }},
-            {{ $order->shipping_address['state'] }} {{ $order->shipping_address['postal_code'] }}<br>
-            {{ $order->shipping_address['country'] }}
+            {{ $line1 }}<br>
+            @if ($line2)
+                {{ $line2 }}<br>
+            @endif
+            {{ $city }},
+            {{ $state }} {{ $postalCode }}<br>
+            {{ $country }}
         </p>
         <hr/>
         <p><strong>Order Items:</strong></p>
         @foreach ($orderItems as $item)
+            @php
+                $imageUrl = $item['image'] ?? null;
+                if (is_array($imageUrl)) {
+                    $imageUrl = $imageUrl[0] ?? null;
+                }
+            @endphp
             <div class="order-item">
                 <p><strong>Name:</strong> {{ $item['description'] }}</p>
                 <p><strong>Quantity:</strong> {{ $item['quantity'] }}</p>
                 <p><strong>Size:</strong> {{ $item['size'] }}</p>
                 <p><strong>Price:</strong> ${{ number_format($item['price'], 2) }}</p>
-                <img src="{{ $item['image'] }}" alt="{{ $item['description'] }}">
+                @if ($imageUrl)
+                    <img src="{{ $imageUrl }}" alt="{{ $item['description'] }}">
+                @endif
             </div>
         @endforeach
         <div class="order-summary">

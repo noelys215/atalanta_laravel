@@ -3,9 +3,13 @@
 namespace Tests\Unit;
 
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\User;
+use Database\Seeders\PlatziProductSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class OrderControllerTest extends TestCase
@@ -20,12 +24,20 @@ class OrderControllerTest extends TestCase
         Auth::login($this->user);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_order_items()
     {
+        $product = $this->seedPlatziProduct();
+
         $orderData = [
             'orderItems' => [
-                ['name' => 'Product 1', 'quantity' => 2, 'price' => 100.0, 'image' => 'https://example.com/product1.jpg', 'selectedSize' => 'M'],
+                [
+                    'name' => $product->name,
+                    'quantity' => 2,
+                    'price' => 100.0,
+                    'image' => $product->image[0] ?? 'https://example.com/product1.jpg',
+                    'selectedSize' => 'M',
+                ],
                 ['name' => 'Product 2', 'quantity' => 1, 'price' => 50.0, 'image' => 'https://example.com/product2.jpg', 'selectedSize' => 'L']
             ],
             'shippingAddress' => [
@@ -48,7 +60,7 @@ class OrderControllerTest extends TestCase
         $this->assertDatabaseHas('orders', ['user_id' => $this->user->id, 'total_price' => 175.0]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_order_by_id()
     {
         $order = Order::factory()->create(['user_id' => $this->user->id]);
@@ -59,7 +71,7 @@ class OrderControllerTest extends TestCase
         $response->assertJson(['id' => $order->id, 'user_id' => $this->user->id]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_404_if_order_not_found()
     {
         $response = $this->getJson('/api/orders/9999');
@@ -69,7 +81,7 @@ class OrderControllerTest extends TestCase
     }
 
 
-    /** @test */
+    #[Test]
     public function it_can_get_user_orders()
     {
         $orders = Order::factory()->count(3)->create(['user_id' => $this->user->id]);
@@ -80,13 +92,35 @@ class OrderControllerTest extends TestCase
         $response->assertJsonCount(3);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_404_if_user_has_no_orders()
     {
         $response = $this->getJson('/api/orders/myorders');
 
         $response->assertStatus(404);
         $response->assertJson(['error' => 'No orders found for user']);
+    }
+
+    private function seedPlatziProduct(): Product
+    {
+        Http::fake([
+            'https://api.escuelajs.co/api/v1/products*' => Http::response([
+                [
+                    'id' => 999,
+                    'title' => 'Seeded Product',
+                    'description' => 'From seed',
+                    'price' => 25.0,
+                    'images' => ['https://example.com/seeded.jpg'],
+                    'category' => ['name' => 'tops'],
+                ],
+            ], 200),
+        ]);
+
+        config(['seed_sources.platzi.default_limit' => 1]);
+
+        $this->seed(PlatziProductSeeder::class);
+
+        return Product::firstOrFail();
     }
 
 

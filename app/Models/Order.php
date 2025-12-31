@@ -24,6 +24,10 @@ class Order extends Model
         'payment_result',
         'is_shipped',
         'shipped_at',
+        'is_delivered',
+        'delivered_at',
+        'tracking_number',
+        'inventory_adjusted_at',
         'customer_name',
         'customer_email',
     ];
@@ -32,6 +36,9 @@ class Order extends Model
         'order_items' => 'array',
         'shipping_address' => 'array',
         'payment_result' => 'array',
+        'is_shipped' => 'boolean',
+        'is_delivered' => 'boolean',
+        'inventory_adjusted_at' => 'datetime',
     ];
 
     // Mutator to ensure order_items quantity and price are saved as numbers

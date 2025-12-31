@@ -5,9 +5,11 @@ namespace Tests\Unit;
 use App\Models\User;
 use Tests\TestCase;
 use App\Models\Product;
+use App\Http\Controllers\ProductController;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
 
 class ProductControllerTest extends TestCase
 {
@@ -15,17 +17,18 @@ class ProductControllerTest extends TestCase
 
     public function test_create_product_successfully()
     {
-        Storage::fake('s3');
+        Storage::fake('public');
+        config(['media-library.disk_name' => 'public']);
 
         // Create a user and authenticate them
         $user = User::factory()->create();
-        $this->actingAs($user, 'sanctum');
+        Sanctum::actingAs($user);
 
-        $response = $this->postJson('/api/products', [
+        $request = \Illuminate\Http\Request::create('/api/products', 'POST', [
             'name' => 'Test Product',
             'price' => 99.99,
-            'category' => 'Electronics',
-            'department' => 'Tech',
+            'category' => 'electronics',
+            'department' => 'Essentials',
             'brand' => 'TestBrand',
             'color' => 'Black',
             'description' => 'A test product',
@@ -33,21 +36,31 @@ class ProductControllerTest extends TestCase
                 ['size' => 'M', 'quantity' => 10],
                 ['size' => 'L', 'quantity' => 5],
             ],
+        ], [], [
             'image' => [
                 UploadedFile::fake()->image('product1.jpg'),
-                UploadedFile::fake()->image('product2.jpg')
+                UploadedFile::fake()->image('product2.jpg'),
             ],
         ]);
+
+        $controller = new ProductController();
+        $response = $controller->createProduct($request);
 
         $this->assertDatabaseHas('products', [
             'name' => 'Test Product',
             'slug' => 'test-product',
-            'category' => 'Electronics',
-            'department' => 'Tech',
+            'category' => 'electronics',
+            'department' => 'Essentials',
             'brand' => 'TestBrand',
         ]);
 
-        Storage::disk('s3')->assertExists('products');
+        $product = Product::where('name', 'Test Product')->first();
+        $this->assertNotNull($product);
+        $this->assertDatabaseHas('media', [
+            'model_type' => Product::class,
+            'model_id' => $product->id,
+            'collection_name' => 'product_images',
+        ]);
     }
 
 
