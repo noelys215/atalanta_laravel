@@ -12,6 +12,10 @@ use App\Notifications\WelcomeEmail;
 use App\Notifications\ForgotPassword;
 use Illuminate\Support\Str;
 
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Hash;
+
+
 class UserController extends Controller
 {
     // Auth User & Get Token
@@ -62,62 +66,88 @@ class UserController extends Controller
     }
 
 // Register New User
-    public function registerUser(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'firstName' => 'required|string',
-            'lastName' => 'required|string',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|min:6',
-            'telephone' => 'required|string',
-            'country' => 'required|string',
-            'address' => 'required|string',
-            'addressCont' => 'string|nullable',
-            'state' => 'required|string',
-            'city' => 'required|string',
-            'postalCode' => 'required|string',
-        ]);
+public function registerUser(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'firstName' => 'required|string',
+        'lastName' => 'required|string',
+        'email' => 'required|email|unique:users',
+        'password' => 'required|min:6',
+        'telephone' => 'required|string',
+        'country' => 'required|string',
+        'address' => 'required|string',
+        'addressCont' => 'string|nullable',
+        'state' => 'required|string',
+        'city' => 'required|string',
+        'postalCode' => 'required|string',
 
-        if ($validator->fails()) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => $validator->errors()], 400);
-            }
-            return back()->withErrors($validator)->withInput();
+        // ✅ hCaptcha token from frontend
+        'hcaptcha_token' => 'required|string',
+    ]);
+
+    if ($validator->fails()) {
+        if ($request->expectsJson()) {
+            return response()->json(['error' => $validator->errors()], 400);
         }
-
-        $token = Str::random(60);
-
-        $user = new User();
-        $user->first_name = $request->firstName;
-        $user->last_name = $request->lastName;
-        $user->email = $request->email;
-        $user->password = $request->password;
-        $user->telephone = $request->telephone;
-        $user->country = $request->country;
-        $user->address = $request->address;
-        $user->address_cont = $request->addressCont;
-        $user->state = $request->state;
-        $user->city = $request->city;
-        $user->postal_code = $request->postalCode;
-        $user->email_verified = false;
-        $user->email_verification_token = $token;
-
-        $user->save();
-
-        if ($user) {
-            $user->notify(new ConfirmEmail($token));
-
-            if ($request->expectsJson()) {
-                return response()->json(['success' => 'Registration successful! Please check your email to verify your account.'], 201);
-            }
-            return redirect()->route('register-form')->with('success', 'Registration successful! Please check your email to verify your account.');
-        } else {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'Registration failed! Please try again.'], 500);
-            }
-            return back()->with('error', 'Registration failed! Please try again.');
-        }
+        return back()->withErrors($validator)->withInput();
     }
+
+    /* ---------------- hCaptcha verify (server-side) ---------------- */
+    $secret = config('services.hcaptcha.secret') ?? env('HCAPTCHA_SECRET');
+
+    if (!$secret) {
+        return response()->json(['error' => 'hCaptcha secret key not configured.'], 500);
+    }
+
+    try {
+        $verify = Http::asForm()->post('https://hcaptcha.com/siteverify', [
+            'secret'   => $secret,
+            'response' => $request->input('hcaptcha_token'),
+            'remoteip' => $request->ip(), // optional, but nice to include
+        ])->json();
+    } catch (\Throwable $e) {
+        return response()->json(['error' => 'hCaptcha verification failed.'], 500);
+    }
+
+    if (!($verify['success'] ?? false)) {
+        return response()->json([
+            'error' => 'hCaptcha failed.',
+            'details' => $verify['error-codes'] ?? null,
+        ], 422);
+    }
+
+    /* ---------------- create user ---------------- */
+    $token = Str::random(60);
+
+    $user = new User();
+    $user->first_name = $request->firstName;
+    $user->last_name = $request->lastName;
+    $user->email = $request->email;
+
+    // ✅ IMPORTANT: hash the password
+    $user->password = Hash::make($request->password);
+
+    $user->telephone = $request->telephone;
+    $user->country = $request->country;
+    $user->address = $request->address;
+    $user->address_cont = $request->addressCont;
+    $user->state = $request->state;
+    $user->city = $request->city;
+    $user->postal_code = $request->postalCode;
+
+    $user->email_verified = false;
+    $user->email_verification_token = $token;
+
+    $user->save();
+
+    // ✅ send confirm email
+    $user->notify(new ConfirmEmail($token));
+
+    return response()->json([
+        'success' => 'Registration successful! Please check your email to verify your account.',
+    ], 201);
+}
+
 
 
 // Verify Email and Send Welcome Email
